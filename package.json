@@ -1,0 +1,5 @@
+{
+  "name": "vehicle-inspection",
+  "private": true,
+  "engines": { "node": ">=18" }
+}

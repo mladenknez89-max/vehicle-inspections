@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Vehicle Inspection</title>
+<style>
+  :root {
+    --black: #0f0f0f;
+    --white: #f5f4f0;
+    --yellow: #f5c842;
+    --gray: #2a2a2a;
+    --light-gray: #3d3d3d;
+    --text-muted: #888;
+    --danger: #e85d3a;
+    --success: #4caf50;
+    --radius: 10px;
+    --font: 'Segoe UI', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  img { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--black); color: var(--white); font-family: var(--font); min-height: 100vh; }
+  .header { background: var(--gray); border-bottom: 3px solid var(--yellow); padding: 18px 20px; display: flex; align-items: center; gap: 12px; }
+  .header-icon { font-size: 28px; }
+  .header h1 { font-size: 18px; font-weight: 700; letter-spacing: .5px; }
+  .header p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .form-container { padding: 24px 20px; max-width: 500px; margin: 0 auto; }
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--yellow); text-transform: uppercase; margin-bottom: 14px; margin-top: 28px; display: flex; align-items: center; gap: 8px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--light-gray); }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
+  .field input, .field textarea { width: 100%; background: var(--gray); border: 1.5px solid var(--light-gray); color: var(--white); font-size: 16px; padding: 13px 14px; border-radius: var(--radius); outline: none; transition: border-color .2s; font-family: var(--font); }
+  .field textarea { min-height: 100px; resize: vertical; }
+  .field input:focus, .field textarea:focus { border-color: var(--yellow); }
+  .field input::placeholder, .field textarea::placeholder { color: #555; }
+  .photo-group { margin-bottom: 24px; }
+  .photo-add-btn { width: 100%; background: var(--gray); border: 2px dashed var(--light-gray); color: var(--text-muted); font-size: 14px; padding: 16px; border-radius: var(--radius); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all .2s; }
+  .photo-add-btn:hover, .photo-add-btn:active { border-color: var(--yellow); color: var(--yellow); }
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+  .photo-thumb { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-thumb .remove-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,.7); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .shot-start-btn { width: 100%; background: var(--yellow); color: var(--black); border: none; font-size: 16px; font-weight: 700; padding: 15px; border-radius: var(--radius); cursor: pointer; margin-bottom: 12px; }
+  .shot-progress { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+  .shot-progress b { color: var(--yellow); }
+  .shot-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+  .shot-row { display: flex; align-items: center; gap: 8px; }
+  .shot-num { width: 22px; height: 22px; border-radius: 50%; background: var(--light-gray); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .shot-row.done .shot-num { background: var(--success); }
+  .shot-name { flex: 1; font-size: 13px; line-height: 1.25; }
+  .shot-row.done .shot-name { color: var(--text-muted); }
+  .cam-banner { position: absolute; top: 80px; left: 16px; right: 16px; text-align: center; background: rgba(0,0,0,.72); color: white; padding: 12px 16px; border-radius: 12px; z-index: 10; }
+  .cam-banner .step { font-size: 12px; color: var(--yellow); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .cam-banner .what { font-size: 22px; font-weight: 700; margin-top: 4px; }
+  .cam-banner .tip { font-size: 13px; color: #ddd; margin-top: 4px; }
+  .cam-guide { position: absolute; left: 8vw; right: 8vw; top: 205px; bottom: calc(115px + env(safe-area-inset-bottom)); pointer-events: none; z-index: 5; }
+  .cam-guide svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 2px rgba(0,0,0,.9)); }
+  .cam-guide .g { fill: none; stroke: var(--yellow); stroke-width: 3; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+  .cam-guide .g.dash { stroke-dasharray: 10 7; }
+  .cam-guide .g.thin { stroke-width: 2; opacity: .8; }
+  .photo-item { width: 80px; flex-shrink: 0; }
+  .photo-cap { font-size: 10px; color: var(--text-muted); margin-top: 3px; line-height: 1.25; }
+  .submit-btn { width: 100%; background: var(--yellow); color: var(--black); border: none; font-size: 16px; font-weight: 700; padding: 16px; border-radius: var(--radius); cursor: pointer; margin-top: 10px; letter-spacing: .5px; transition: opacity .2s; }
+  .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .submit-btn:active:not(:disabled) { opacity: .85; }
+  .status-msg { text-align: center; padding: 14px; border-radius: var(--radius); margin-top: 16px; font-size: 14px; font-weight: 600; display: none; }
+  .status-msg.success { background: rgba(76,175,80,.15); color: var(--success); border: 1px solid var(--success); display: block; }
+  .status-msg.error { background: rgba(232,93,58,.15); color: var(--danger); border: 1px solid var(--danger); display: block; }
+  .status-msg.loading { background: rgba(245,200,66,.1); color: var(--yellow); border: 1px solid var(--yellow); display: block; }
+  .login-container { max-width: 360px; margin: 60px auto; padding: 32px 24px; background: var(--gray); border-radius: 14px; border: 1px solid var(--light-gray); }
+  .login-container h2 { font-size: 20px; margin-bottom: 6px; }
+  .login-container p { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; }
+  .admin-container { padding: 20px; }
+  .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+  .admin-header h2 { font-size: 20px; }
+  .logout-btn { background: var(--gray); border: 1px solid var(--light-gray); color: var(--text-muted); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+  .refresh-btn { background: var(--yellow); color: var(--black); border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 14px; }
+  .admin-tabs { display: flex; gap: 6px; background: var(--gray); padding: 4px; border-radius: 12px; }
+  .admin-tab { background: none; border: none; color: var(--text-muted); font-size: 15px; font-weight: 700; padding: 9px 16px; border-radius: 9px; cursor: pointer; }
+  .admin-tab.active { background: var(--yellow); color: var(--black); }
+  .role-badge { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); border: 1px solid var(--light-gray); padding: 4px 8px; border-radius: 6px; }
+  .role-badge.super { color: var(--yellow); border-color: var(--yellow); }
+  .drv-add { background: var(--gray); border: 1px solid var(--light-gray); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 18px; }
+  .drv-add-title { font-size: 13px; font-weight: 700; color: var(--yellow); margin-bottom: 10px; }
+  .drv-add-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .drv-add-row input, .drv-edit input { background: var(--black); border: 1.5px solid var(--light-gray); color: var(--white); font-size: 15px; padding: 10px 12px; border-radius: 8px; outline: none; font-family: var(--font); }
+  .drv-add-row input:focus, .drv-edit input:focus { border-color: var(--yellow); }
+  #drv-new-name { flex: 2; min-width: 180px; }
+  #drv-new-id { flex: 1; min-width: 110px; max-width: 170px; }
+  .drv-msg { font-size: 13px; margin-top: 8px; min-height: 18px; }
+  .drv-msg.err { color: var(--danger); }
+  .drv-msg.ok { color: var(--success); }
+  .drv-list { display: flex; flex-direction: column; gap: 8px; }
+  .drv-row { display: flex; align-items: center; gap: 12px; background: var(--gray); border: 1px solid var(--light-gray); border-radius: var(--radius); padding: 10px 14px; flex-wrap: wrap; }
+  .drv-row.inactive { opacity: .55; }
+  .drv-name { flex: 1; min-width: 150px; font-size: 15px; font-weight: 600; }
+  .drv-id { font-family: ui-monospace, Menlo, monospace; font-size: 15px; color: var(--yellow); min-width: 52px; }
+  .drv-status { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: .5px; }
+  .drv-status.on { background: rgba(76,175,80,.15); color: var(--success); }
+  .drv-status.off { background: rgba(136,136,136,.15); color: var(--text-muted); }
+  .drv-actions { display: flex; gap: 6px; }
+  .drv-btn { background: var(--black); border: 1px solid var(--light-gray); color: var(--white); font-size: 13px; padding: 7px 11px; border-radius: 7px; cursor: pointer; }
+  .drv-btn:hover { border-color: var(--yellow); }
+  .drv-btn.danger { color: var(--danger); }
+  .drv-btn.save { background: var(--yellow); color: var(--black); border-color: var(--yellow); font-weight: 700; }
+  .drv-edit { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
+  .drv-edit input:first-child { flex: 2; min-width: 160px; }
+  .drv-edit input:last-child { width: 90px; }
+  .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: var(--gray); border-radius: var(--radius); padding: 16px; border-left: 3px solid var(--yellow); }
+  .stat-card .num { font-size: 28px; font-weight: 700; color: var(--yellow); }
+  .stat-card .lbl { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .toolbar input, .toolbar select { background: var(--gray); border: 1.5px solid var(--light-gray); color: var(--white); font-size: 14px; padding: 10px 14px; border-radius: 10px; outline: none; }
+  .toolbar input { flex: 1; min-width: 200px; }
+  .toolbar select { cursor: pointer; }
+  .pagination { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  #pagination-top { margin-bottom: 12px; }
+  #pagination-bottom { margin-top: 16px; }
+  .records-list { display: flex; flex-direction: column; gap: 14px; }
+  .record-card { background: var(--gray); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--light-gray); }
+  .record-header { padding: 14px 16px; border-bottom: 1px solid var(--light-gray); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .record-name { font-size: 16px; font-weight: 600; }
+  .record-time { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+  .record-fields { padding: 12px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .record-field .lbl { font-size: 11px; color: var(--text-muted); }
+  .record-field .val { font-size: 14px; font-weight: 500; margin-top: 2px; word-break: break-word; }
+  .record-photos { padding: 0 16px 14px; }
+  .photos-label { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+  .photo-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 8px; }
+  .photo-strip img { height: 80px; width: 80px; object-fit: cover; border-radius: 6px; flex-shrink: 0; cursor: pointer; outline: none; }
+  .driver-notes { margin: 0 16px 14px; padding: 10px 12px; background: var(--black); border-left: 3px solid var(--yellow); border-radius: 6px; font-size: 14px; white-space: pre-wrap; word-break: break-word; }
+  .driver-notes .lbl { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .comment-section { padding: 12px 16px 14px; border-top: 1px solid var(--light-gray); }
+  .comment-label { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
+  .comment-box { width: 100%; background: var(--black); border: 1.5px solid var(--light-gray); color: var(--white); font-size: 14px; padding: 10px 12px; border-radius: 8px; outline: none; resize: vertical; min-height: 70px; font-family: var(--font); transition: border-color .2s; }
+  .comment-box:focus { border-color: var(--yellow); }
+  .comment-save-btn { background: var(--yellow); color: var(--black); border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+  .comment-save-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .comment-saved { font-size: 12px; color: var(--success); margin-left: 8px; display: none; }
+  .no-records { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 15px; }
+  .page-btn { background: var(--gray); border: 1px solid var(--light-gray); color: var(--white); padding: 7px 13px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: background .2s; }
+  .page-btn:hover { background: var(--light-gray); }
+  .page-btn.active { background: var(--yellow); color: var(--black); font-weight: 700; border-color: var(--yellow); }
+  .page-btn:disabled { opacity: .35; cursor: not-allowed; }
+  .page-info { font-size: 13px; color: var(--text-muted); padding: 7px 4px; }
+  .camera-modal { display: none; position: fixed; inset: 0; background: #000; z-index: 2000; }
+  .camera-modal.open { display: block; }
+  .camera-inner { position: relative; width: 100%; height: 100%; }
+  #camera-video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
+  .cam-cancel-btn, .cam-flip-btn { position: absolute; top: 20px; background: rgba(0,0,0,.65); color: white; border: 2px solid rgba(255,255,255,.5); font-size: 15px; font-weight: 600; padding: 10px 20px; border-radius: 50px; cursor: pointer; z-index: 10; }
+  .cam-cancel-btn { left: 16px; }
+  .cam-flip-btn { right: 16px; }
+  .cam-snap-btn { position: absolute; left: 50%; bottom: calc(36px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--yellow); color: var(--black); border: none; font-size: 18px; font-weight: 700; padding: 20px 52px; border-radius: 50px; cursor: pointer; z-index: 10; white-space: nowrap; box-shadow: 0 4px 24px rgba(0,0,0,.6); }
+  .cam-snap-btn:active { opacity: .85; }
+  .cam-rotate { display: none; position: absolute; inset: 0; z-index: 8; background: rgba(0,0,0,.78); color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; padding: 24px; }
+  .cam-rotate .icon { font-size: 64px; color: var(--yellow); animation: rot 1.6s ease-in-out infinite; }
+  .cam-rotate .msg { font-size: 22px; font-weight: 700; }
+  @keyframes rot { 0%, 25% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
+  /* fotografija traži vodoravan telefon, a telefon je uspravan */
+  @media (orientation: portrait) {
+    .camera-modal.need-landscape .cam-rotate { display: flex; }
+    .camera-modal.need-landscape .cam-guide { display: none; }
+    .camera-modal.need-landscape .cam-snap-btn { opacity: .35; pointer-events: none; }
+  }
+  /* telefon vodoravno: natpis gore, dugme desno, silueta preko ostatka ekrana */
+  @media (orientation: landscape) and (max-height: 600px) {
+    .cam-cancel-btn, .cam-flip-btn { top: 10px; padding: 8px 16px; font-size: 14px; }
+    .cam-banner { top: 10px; left: 130px; right: 130px; padding: 6px 12px; }
+    .cam-banner .what { font-size: 17px; margin-top: 2px; }
+    .cam-banner .tip { font-size: 12px; margin-top: 2px; }
+    .cam-guide { top: 92px; bottom: 12px; left: calc(16px + env(safe-area-inset-left)); right: calc(150px + env(safe-area-inset-right)); }
+    .cam-snap-btn { left: auto; right: calc(16px + env(safe-area-inset-right)); top: 50%; bottom: auto; transform: translateY(-50%); padding: 18px 20px; font-size: 16px; }
+  }
+  .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.92); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 90%; max-height: 85vh; border-radius: 8px; position: relative; z-index: 1; touch-action: none; user-select: none; -webkit-user-drag: none; transition: transform .15s ease-out; }
+  .lightbox img.dragging { transition: none; }
+  .lightbox img.zoomed { cursor: grab; }
+  .lightbox img.zoomed.dragging { cursor: grabbing; }
+  .lightbox-close, .lightbox-nav, #lightbox-counter, .lb-zoom { z-index: 2; }
+  .lb-zoom { position: absolute; right: 16px; bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .lb-zoom button { width: 52px; height: 52px; border-radius: 50%; border: none; font-size: 30px; font-weight: 700; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  #lb-zoom-in { background: var(--yellow); color: var(--black); }
+  #lb-zoom-out { background: rgba(0,0,0,.6); color: white; border: 2px solid rgba(255,255,255,.5); }
+  #lb-zoom-out:disabled { opacity: .3; cursor: default; }
+  #lb-zoom-level { color: white; font-size: 13px; background: rgba(0,0,0,.5); padding: 4px 10px; border-radius: 20px; min-width: 44px; text-align: center; }
+  .lightbox-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: white; font-size: 30px; cursor: pointer; }
+  .lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,.6); border: none; color: white; font-size: 32px; width: 48px; height: 48px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  #lightbox-prev { left: 16px; }
+  #lightbox-next { right: 16px; }
+  #lightbox-counter { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); color: white; font-size: 14px; background: rgba(0,0,0,.5); padding: 4px 12px; border-radius: 20px; }
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(0,0,0,.3); border-top-color: var(--black); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">🚛</div>
+  <div>
+    <h1>Vehicle Inspection</h1>
+    <p id="header-sub">Submit truck &amp; trailer condition report</p>
+  </div>
+</div>
+
+<div id="page-form" class="page active">
+  <div class="form-container">
+    <div class="section-label">Driver</div>
+    <div class="field">
+      <label for="f-name">Full Name *</label>
+      <input type="text" id="f-name" placeholder="e.g. John Smith" autocomplete="name" maxlength="100">
+    </div>
+    <div class="field">
+      <label for="f-driverid">Driver ID * (last 4 digits of your phone)</label>
+      <input type="text" id="f-driverid" inputmode="numeric" placeholder="e.g. 1234" autocomplete="off" maxlength="4">
+    </div>
+    <div class="section-label">Vehicle</div>
+    <div class="field">
+      <label for="f-truck">Truck Number *</label>
+      <input type="text" id="f-truck" placeholder="e.g. T-1042" autocomplete="off" maxlength="40">
+    </div>
+    <div class="field">
+      <label for="f-trailer">Trailer Number *</label>
+      <input type="text" id="f-trailer" placeholder="e.g. TR-2085" autocomplete="off" maxlength="40">
+    </div>
+    <div class="section-label">Truck Photos</div>
+    <div class="photo-group">
+      <button class="shot-start-btn" id="truck-start-btn" onclick="startShots('truck')"></button>
+      <div class="shot-progress" id="truck-progress"></div>
+      <div class="shot-list" id="truck-list"></div>
+    </div>
+    <div class="section-label">Trailer Photos</div>
+    <div class="photo-group">
+      <button class="shot-start-btn" id="trailer-start-btn" onclick="startShots('trailer')"></button>
+      <div class="shot-progress" id="trailer-progress"></div>
+      <div class="shot-list" id="trailer-list"></div>
+    </div>
+    <div class="section-label">Notes</div>
+    <div class="field">
+      <label for="f-notes">Additional Notes (optional)</label>
+      <textarea id="f-notes" placeholder="Any issues or comments..." maxlength="2000"></textarea>
+    </div>
+
+    <button class="submit-btn" id="submit-btn" onclick="submitForm()">Submit Report</button>
+    <div class="status-msg" id="status-msg"></div>
+    <div style="height:40px"></div>
+  </div>
+</div>
+
+<div id="page-login" class="page">
+  <div class="login-container">
+    <h2>🔐 Admin Panel</h2>
+    <p>Enter password to access reports</p>
+    <div class="field">
+      <label for="admin-pass">Password</label>
+      <input type="password" id="admin-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()">
+    </div>
+    <button class="submit-btn" id="login-btn" onclick="adminLogin()">Log In</button>
+    <div class="status-msg" id="login-msg"></div>
+  </div>
+</div>
+
+<div id="page-admin" class="page">
+  <div class="admin-container">
+    <div class="admin-header">
+      <div class="admin-tabs" id="admin-tabs">
+        <button class="admin-tab active" id="tab-reports" onclick="showAdminTab('reports')">📋 Reports</button>
+        <button class="admin-tab" id="tab-drivers" onclick="showAdminTab('drivers')" style="display:none">👥 Drivers</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="role-badge" id="role-badge"></span>
+        <button class="refresh-btn" onclick="refreshAdmin()">⟳ Refresh</button>
+        <button class="logout-btn" onclick="adminLogout()">Log Out</button>
+      </div>
+    </div>
+    <div id="section-reports">
+    <div class="stats-row">
+      <div class="stat-card"><div class="num" id="stat-total">—</div><div class="lbl">Total Reports</div></div>
+      <div class="stat-card"><div class="num" id="stat-today">—</div><div class="lbl">Today</div></div>
+    </div>
+    <div class="toolbar">
+      <input type="text" id="search-input" placeholder="🔍 Search by name, truck, trailer, driver ID..." oninput="currentPage = 1; filterAndRender()">
+      <select id="per-page" onchange="currentPage = 1; filterAndRender()">
+        <option value="10">10 per page</option>
+        <option value="25">25 per page</option>
+        <option value="50">50 per page</option>
+        <option value="100">100 per page</option>
+      </select>
+    </div>
+    <div id="pagination-top" class="pagination"></div>
+    <div class="records-list" id="records-list"><div class="no-records">Loading...</div></div>
+    <div id="pagination-bottom" class="pagination"></div>
+    </div>
+
+    <div id="section-drivers" style="display:none">
+      <div class="stats-row">
+        <div class="stat-card"><div class="num" id="stat-drivers">—</div><div class="lbl">Drivers</div></div>
+        <div class="stat-card"><div class="num" id="stat-active">—</div><div class="lbl">Active</div></div>
+      </div>
+      <div class="drv-add">
+        <div class="drv-add-title">➕ Add driver</div>
+        <div class="drv-add-row">
+          <input type="text" id="drv-new-name" placeholder="Full name (e.g. John Smith)" maxlength="100" autocomplete="off">
+          <input type="text" id="drv-new-id" placeholder="Driver ID (4 digits)" maxlength="4" inputmode="numeric" autocomplete="off" onkeydown="if(event.key==='Enter')addDriver()">
+          <button class="refresh-btn" id="drv-add-btn" onclick="addDriver()">Add</button>
+        </div>
+        <div class="drv-msg" id="drv-msg"></div>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="drv-search" placeholder="🔍 Search drivers by name or ID..." oninput="renderDrivers()">
+        <select id="drv-filter" onchange="renderDrivers()">
+          <option value="all">All drivers</option>
+          <option value="active">Active only</option>
+          <option value="inactive">Inactive only</option>
+        </select>
+      </div>
+      <div class="drv-list" id="drv-list"><div class="no-records">Loading...</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="camera-modal" id="camera-modal">
+  <div class="camera-inner">
+    <video id="camera-video" autoplay playsinline muted></video>
+    <canvas id="camera-canvas" style="display:none"></canvas>
+    <button class="cam-cancel-btn" onclick="closeCamera()">✕ Cancel</button>
+    <button class="cam-flip-btn" onclick="flipCamera()">🔄 Flip</button>
+    <div class="cam-banner" id="cam-banner" style="display:none">
+      <div class="step" id="cam-step"></div>
+      <div class="what" id="cam-what"></div>
+      <div class="tip" id="cam-tip"></div>
+    </div>
+    <div class="cam-guide" id="cam-guide"></div>
+    <div class="cam-rotate"><div class="icon">📱</div><div class="msg">Turn your phone sideways</div><div>This photo must be taken horizontally</div></div>
+    <button class="cam-snap-btn" onclick="snapPhoto()">📷 Capture</button>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <button class="lightbox-nav" id="lightbox-prev" onclick="lightboxNav(-1)">‹</button>
+  <img id="lightbox-img" src="" alt="">
+  <button class="lightbox-nav" id="lightbox-next" onclick="lightboxNav(1)">›</button>
+  <div id="lightbox-counter"></div>
+  <div class="lb-zoom">
+    <span id="lb-zoom-level">1×</span>
+    <button id="lb-zoom-out" onclick="lbZoomBy(-1)" aria-label="Zoom out">−</button>
+    <button id="lb-zoom-in" onclick="lbZoomBy(1)" aria-label="Zoom in">+</button>
+  </div>
+</div>
+
+<script>
+const API = '/.netlify/functions/api';
+const ADMIN_TOKEN_KEY = 'vi_admin_token';
+
+// ─── HELPERS ──────────────────────────────────────────────
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+class ApiError extends Error {
+  constructor(status, message) { super(message); this.status = status; }
+}
+
+async function callApi(action, data, token) {
+  const res = await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, data, token })
+  });
+  const text = await res.text();
+  let json;
+  try { json = JSON.parse(text); } catch (e) { throw new ApiError(res.status, 'Server error (' + res.status + ')'); }
+  if (!res.ok || json.error) throw new ApiError(res.status, json.error || ('Server error (' + res.status + ')'));
+  return json;
+}
+
+function getAdminToken() { try { return sessionStorage.getItem(ADMIN_TOKEN_KEY); } catch (e) { return window._adminToken || null; } }
+function setAdminToken(t) {
+  window._adminToken = t;
+  try { t ? sessionStorage.setItem(ADMIN_TOKEN_KEY, t) : sessionStorage.removeItem(ADMIN_TOKEN_KEY); } catch (e) {}
+}
+
+// ─── CAMERA ───────────────────────────────────────────────
+// Obavezne fotografije – redosled ovde je redosled snimanja.
+// Za izmenu spiska dovoljno je promeniti ove nizove.
+const SHOTS = {
+  truck: [
+    'Windshield',
+    'Left side of Truck (lights on)',
+    'LR Rim and Hub Cap',
+    'LR Tires',
+    'LR Brakes and Drums',
+    'LF Rim and Hub Cap',
+    'LF Tires',
+    'LF Brakes and Drums',
+    'Rear side of Truck (lights on)',
+    'Left Steer Rim and Hub Cap',
+    'Left Steer Tire Photo',
+    'Left Steer Brakes and Drums',
+    'Front side of Truck (lights on)',
+    'Engine',
+    'Right Steer Rim and Hub Cap',
+    'Right Steer Tire Photo',
+    'Right Steer Brakes and Drums',
+    'Right side of Truck (lights on)',
+    'RF Rim and Hub Cap',
+    'RF Tires',
+    'RF Brakes and Drums',
+    'RR Rim and Hub Cap',
+    'RR Tires',
+    'RR Brakes and Drums',
+  ],
+  trailer: [
+    'Front side Trailer (lights on)',
+    'Right side Trailer (lights on)',
+    'RF Rim and Hub Cap',
+    'RF Tires',
+    'RF Brakes and Drums',
+    'RR Rim and Hub Cap',
+    'RR Tires',
+    'RR Brakes and Drums',
+    'DOT Bumper (lights on)',
+    'ABS light',
+    'Left side Trailer (lights on)',
+    'LR Rim and Hub Cap',
+    'LR Tires',
+    'LR Brakes and Drums',
+    'LF Rim and Hub Cap',
+    'LF Tires',
+    'LF Brakes and Drums',
+  ],
+};
+const GROUP_LABEL = { truck: 'Truck', trailer: 'Trailer' };
+
+// status: 'pending' (još nije snimljeno) ili 'done' (snimljeno) – sve fotografije su obavezne
+function makeSlots(type) { return SHOTS[type].map(name => ({ name, status: 'pending', dataUrl: null, url: null })); }
+
+const photos = { truck: makeSlots('truck'), trailer: makeSlots('trailer') };
+let currentCameraType = null;
+let shotQueue = [];   // indeksi fotografija koje ova sesija kamere treba da prođe
+let cameraStream = null;
+let facingMode = 'environment';
+
+const count = (type, status) => photos[type].filter(p => p.status === status).length;
+const currentSlot = () => photos[currentCameraType][shotQueue[0]];
+
+// Kamera prolazi redom kroz sve fotografije koje još nisu snimljene
+function startShots(type) {
+  shotQueue = photos[type].map((p, i) => p.status === 'pending' ? i : -1).filter(i => i >= 0);
+  if (!shotQueue.length) return;
+  currentCameraType = type;
+  updateCameraBanner();
+  openCamera();
+}
+
+// Vodilice na kameri – obris i kratko uputstvo, biraju se po nazivu fotografije
+const CORNERS = '<path class="g" d="M2 18V2h16M82 2h16v16M98 82v16H82M18 98H2V82"/>';
+const GUIDES = [
+  { match: 'windshield', landscape: true, vb: '4 24 250 120', tip: 'From the driver seat – whole windshield inside the outline',
+    svg: '<path class="g" d="M13 35 Q20 30 32 35 C70 50 100 60 132 64 L240 64 Q248 64 245 71 L229 111 Q226 118 218 118 L140 118 C110 120 76 129 52 135 Q41 138 37 130 L14 47 Q10 39 13 35 Z"/>' },
+  { match: 'left side of truck', vb: '0 0 150 100', tip: 'Step back – whole truck inside the outline, lights on',
+    svg: '<path class="g" d="M3 88 L1 66 Q2 55 10 52 L43 45 L60 17 Q62 13 68 13 L84 12 C100 6 118 2 134 2 L137 60 L146 62 L146 90 L47 90 L47 88 C47 61 3 61 3 88 Z"/>' },
+  { match: 'right side of truck', vb: '0 0 150 100', tip: 'Step back – whole truck inside the outline, lights on',
+    svg: '<g transform="translate(150 0) scale(-1 1)"><path class="g" d="M3 88 L1 66 Q2 55 10 52 L43 45 L60 17 Q62 13 68 13 L84 12 C100 6 118 2 134 2 L137 60 L146 62 L146 90 L47 90 L47 88 C47 61 3 61 3 88 Z"/></g>' },
+  { match: 'right side trailer', landscape: true, vb: '-2 20 259 105', tip: 'Step back – whole trailer inside the outline, lights on',
+    svg: '<path class="g" d="M3 27 L251 48 L251 97 L4 95 Z"/><circle class="g" cx="26" cy="107" r="11"/><circle class="g" cx="51" cy="107" r="11"/><path class="g" d="M193 98 L193 114 Q193 119 197 119 Q201 119 201 114 L201 98"/>' },
+  { match: 'left side trailer', landscape: true, vb: '-2 20 259 105', tip: 'Step back – whole trailer inside the outline, lights on',
+    svg: '<g transform="translate(255 0) scale(-1 1)"><path class="g" d="M3 27 L251 48 L251 97 L4 95 Z"/><circle class="g" cx="26" cy="107" r="11"/><circle class="g" cx="51" cy="107" r="11"/><path class="g" d="M193 98 L193 114 Q193 119 197 119 Q201 119 201 114 L201 98"/></g>' },
+  { match: 'front side trailer', vb: '132 8 286 386', tip: 'Whole front wall inside the outline, lights on',
+    svg: '<path class="g" d="M142 17 L403 45 L407 374 L150 384 Z"/><path class="g thin" d="M158 44 L392 67 L392 352 L163 356 Z"/>' },
+  { match: 'front side of truck', vb: '18 28 122 140', tip: 'Step back – whole front inside the outline, lights on',
+    svg: '<path class="g" d="M79.0 35.0 L105.0 35.5 L112.0 37.0 L115.0 41.0 L116.0 52.0 L118.0 84.0 L122.0 90.0 L125.0 100.0 L126.0 128.0 L128.0 132.0 L128.0 156.0 L125.0 160.0 L79.0 160.0 L79.0 160.0 L33.0 160.0 L30.0 156.0 L30.0 132.0 L32.0 128.0 L33.0 100.0 L36.0 90.0 L40.0 84.0 L42.0 52.0 L43.0 41.0 L46.0 37.0 L53.0 35.5 L79.0 35.0 Z"/><path class="g" d="M79.0 54.0 L114.0 55.0 L116.0 58.0 L117.0 80.0 L115.0 83.0 L79.0 82.0 L79.0 82.0 L43.0 83.0 L41.0 80.0 L42.0 58.0 L44.0 55.0 L79.0 54.0 Z"/><path class="g thin" d="M79.0 91.0 L98.0 92.0 L99.0 96.0 L100.0 142.0 L98.0 146.0 L79.0 146.0 L79.0 146.0 L60.0 146.0 L58.0 142.0 L59.0 96.0 L60.0 92.0 L79.0 91.0 Z"/><path class="g thin" d="M101.0 108.0 L123.0 104.0 L125.0 108.0 L123.0 120.0 L103.0 124.0 L101.0 120.0 Z M57.0 108.0 L35.0 104.0 L33.0 108.0 L35.0 120.0 L55.0 124.0 L57.0 120.0 Z"/><path class="g thin" d="M126.0 62.0 L133.0 62.0 L134.0 66.0 L134.0 98.0 L132.0 100.0 L127.0 100.0 L126.0 98.0 Z M118.0 70 L126.0 68 M32.0 62.0 L25.0 62.0 L24.0 66.0 L24.0 98.0 L26.0 100.0 L31.0 100.0 L32.0 98.0 Z M40.0 70 L32.0 68"/><path class="g thin" d="M30 138 L128 138"/>' },
+  { match: 'front side', tip: 'Step back – whole front in the frame, lights on',
+    svg: '<rect class="g" x="14" y="8" width="72" height="84" rx="6"/><path class="g dash thin" d="M14 62h72"/><circle class="g thin" cx="26" cy="72" r="5"/><circle class="g thin" cx="74" cy="72" r="5"/>' },
+  { match: 'rear side of truck', vb: '20 22 118 164', tip: 'Back of the cab and the deck plate inside the outline, lights on',
+    svg: '<path class="g" d="M29 28 L113 45 Q117 46 117 50 L117 144 L66 144 L66 157 L32 158 Q29 158 29 155 Z"/><path class="g" d="M66 148 L117 148 L130 161 L100 180 Z"/><path class="g thin" d="M78 156 L114 156 L120 162 L101 173 Z"/>' },
+  { match: 'rear side', tip: 'Step back – whole rear in the frame, lights on',
+    svg: '<rect class="g" x="14" y="8" width="72" height="84" rx="6"/><circle class="g thin" cx="26" cy="76" r="5"/><circle class="g thin" cx="74" cy="76" r="5"/>' },
+  { match: 'bumper', landscape: true, vb: '0 40 129 60', tip: 'Whole bumper and both lights inside the outline, lights on',
+    svg: '<path class="g" d="M6.0 47.0 L123.0 53.0 L123.0 66.0 L7.0 59.0 Z"/><path class="g" d="M6.0 79.0 L123.0 83.0 L123.0 94.0 L7.0 86.0 Z"/><path class="g" d="M36.0 60.8 L43.0 61.2 L42.3 80.2 L35.2 80.0 Z"/><path class="g" d="M90.5 64.0 L98.6 64.5 L98.4 82.2 L90.2 81.9 Z"/><circle class="g thin" cx="16" cy="53.5" r="3.6"/><circle class="g thin" cx="27" cy="54.1" r="3.6"/><circle class="g thin" cx="104" cy="58.4" r="3.6"/><circle class="g thin" cx="116" cy="59.1" r="3.6"/>' },
+  { match: 'side', tip: 'Step back – whole side and unit number in the frame, lights on',
+    svg: '<rect class="g" x="0" y="26" width="100" height="44" rx="4"/><circle class="g thin" cx="18" cy="74" r="9"/><circle class="g thin" cx="82" cy="74" r="9"/>' },
+  { match: 'engine', vb: '-4 -4 488 328', tip: 'Hood open – whole engine inside the outline',
+    svg: '<path class="g" d="M1.0 88.8 L0.0 149.0 L1.0 154.2 L7.2 163.8 L7.2 230.5 L9.2 238.5 L13.0 241.5 L22.5 243.5 L22.5 168.2 L48.5 168.0 L49.0 235.0 L51.5 244.0 L55.5 250.8 L62.2 257.2 L72.8 262.2 L104.2 263.2 L112.2 266.0 L157.2 310.0 L166.5 316.2 L178.2 319.5 L358.8 319.0 L370.5 314.0 L380.5 303.0 L384.2 291.8 L384.8 269.0 L405.2 269.2 L405.2 306.5 L461.5 306.5 L465.0 302.5 L475.0 264.8 L479.2 232.0 L479.0 150.2 L465.2 90.8 L461.5 87.8 L405.0 88.5 L405.0 125.2 L385.2 125.5 L384.8 88.5 L341.8 87.5 L336.8 85.8 L330.2 78.0 L328.0 63.5 L324.5 54.2 L313.8 42.8 L305.8 39.0 L297.0 37.5 L245.5 37.5 L245.8 19.2 L291.2 19.2 L291.2 0.0 L128.8 0.0 L128.8 19.2 L175.0 19.0 L175.2 37.2 L133.5 37.5 L125.5 39.5 L112.8 48.5 L103.8 65.0 L99.8 69.2 L94.5 70.8 L75.0 71.5 L69.2 73.2 L60.0 79.0 L53.5 86.8 L49.2 98.2 L48.5 146.8 L21.8 146.2 L21.8 66.8 L5.2 82.2 Z"/><path class="g thin" d="M70.0 98.2 L73.2 94.0 L78.0 91.2 L99.2 90.5 L111.2 86.0 L120.2 77.5 L128.5 61.8 L136.0 57.8 L295.0 57.5 L301.2 58.8 L306.2 63.0 L312.8 87.5 L317.8 95.5 L323.8 101.0 L339.8 107.0 L365.0 107.8 L365.0 145.2 L425.0 145.2 L425.0 108.2 L447.0 108.0 L450.0 111.8 L455.8 134.0 L460.0 162.8 L459.8 239.5 L450.0 283.0 L446.2 286.8 L425.2 286.5 L425.2 249.0 L365.0 249.0 L364.5 288.5 L362.0 294.5 L356.2 298.5 L182.5 299.5 L176.5 298.0 L171.0 294.8 L128.8 252.8 L121.8 247.5 L107.0 242.8 L79.0 242.5 L74.0 240.2 L70.2 236.0 L68.8 231.5 L68.8 102.5 Z"/>' },
+  { match: 'abs', vb: '2 0 140 156', tip: 'ABS light inside the circle – must be visible and in focus',
+    svg: '<path class="g" d="M126 2 L131 72 Q133 93 116 102 L92 111 L90 94 C70 106 32 128 8 150"/><ellipse class="g" cx="68" cy="83" rx="10" ry="8"/><ellipse class="g thin" cx="108" cy="87" rx="5" ry="9" transform="rotate(-20 108 87)"/>' },
+  { match: 'rim', tip: 'Whole tire inside the big circle – hub cap inside the small one',
+    svg: '<circle class="g" cx="50" cy="50" r="48"/><circle class="g" cx="50" cy="50" r="18"/>' },
+  { match: 'right steer tire', vb: '10 14 98 164', tip: 'Tread facing you – whole tread inside the outline',
+    svg: '<g transform="translate(118 0) scale(-1 1)"><path class="g" d="M48 20 L100 20 C90 55 74 85 70 112 C66 138 66 155 70 172 L18 172 C14 155 14 138 18 112 C22 85 38 55 48 20 Z"/><path class="g dash thin" d="M82 20 C72 55 56 85 52 112 C48 138 48 155 52 172"/><path class="g dash thin" d="M65 20 C55 55 39 85 35 112 C31 138 31 155 35 172"/></g>' },
+  { match: 'steer tire', vb: '10 14 98 164', tip: 'Tread facing you – whole tread inside the outline',
+    svg: '<path class="g" d="M48 20 L100 20 C90 55 74 85 70 112 C66 138 66 155 70 172 L18 172 C14 155 14 138 18 112 C22 85 38 55 48 20 Z"/><path class="g dash thin" d="M82 20 C72 55 56 85 52 112 C48 138 48 155 52 172"/><path class="g dash thin" d="M65 20 C55 55 39 85 35 112 C31 138 31 155 35 172"/>' },
+  { match: 'tires', vb: '16 30 376 508', tip: 'Both tires inside the outlines – tread facing you',
+    svg: '<rect class="g" x="26" y="40" width="158" height="488" rx="14"/><path class="g dash thin" d="M66 50 L66 518"/><path class="g dash thin" d="M105 50 L105 518"/><path class="g dash thin" d="M144 50 L144 518"/><rect class="g" x="240" y="70" width="142" height="440" rx="14"/><path class="g dash thin" d="M276 80 L276 500"/><path class="g dash thin" d="M311 80 L311 500"/><path class="g dash thin" d="M346 80 L346 500"/>' },
+  { match: 'tire', tip: 'Whole tire inside the circle – tread and sidewall visible',
+    svg: '<circle class="g" cx="50" cy="50" r="48"/><circle class="g dash thin" cx="50" cy="50" r="32"/>' },
+  { match: /^(lr|lf|left steer) brakes/, vb: '11 20 211 174', tip: 'Drum edge in the outer arc – brake shoe lining in the inner arc',
+    svg: '<g transform="translate(233 0) scale(-1 1)"><path class="g" d="M16.8 99.6 L16.9 97.7 L17.0 95.8 L17.2 93.9 L17.4 92.0 L17.6 90.1 L17.9 88.2 L18.2 86.4 L18.5 84.6 L18.8 82.8 L19.2 81.0 L19.6 79.2 L20.1 77.5 L20.5 75.8 L21.0 74.1 L21.6 72.4 L22.1 70.7 L22.7 69.1 L23.3 67.5 L24.0 65.9 L24.6 64.4 L25.3 62.8 L26.0 61.3 L26.8 59.8 L27.6 58.4 L28.4 57.0 L29.2 55.6 L30.1 54.2 L31.0 52.8 L31.9 51.5 L32.8 50.2 L33.8 49.0 L34.8 47.8 L35.8 46.6 L36.8 45.4 L37.9 44.3 L39.0 43.2 L40.1 42.1 L41.2 41.0 L42.4 40.0 L43.5 39.0 L44.7 38.1 L45.9 37.2 L47.2 36.3 L48.5 35.5 L49.7 34.7 L51.0 33.9 L52.4 33.1 L53.7 32.4 L55.1 31.8 L56.5 31.1 L57.9 30.5 L59.3 30.0 L60.7 29.4 L62.2 28.9 L63.6 28.5 L65.1 28.0 L66.6 27.7 L68.1 27.3 L69.7 27.0 L71.2 26.7 L72.8 26.5 L74.3 26.3 L75.9 26.1 L77.5 26.0 L79.1 25.9 L80.7 25.8 L82.4 25.8 L84.0 25.8 L85.6 25.8 L87.3 25.9 L89.0 26.1 L90.6 26.2 L92.3 26.4 L94.0 26.7 L95.7 26.9 L97.4 27.2 L99.1 27.6 L100.9 28.0 L102.6 28.4 L104.3 28.8 L106.0 29.3 L107.8 29.8 L109.5 30.4 L111.2 31.0 L113.0 31.6 L114.7 32.3 L116.4 33.0 L118.2 33.7 L119.9 34.5 L121.6 35.3 L123.4 36.1 L125.1 37.0 L126.8 37.9 L128.6 38.9 L130.3 39.8 L132.0 40.8 L133.7 41.9 L135.4 42.9 L137.1 44.0 L138.8 45.2 L140.5 46.3 L142.2 47.5 L143.9 48.7 L145.5 50.0 L147.2 51.3 L148.8 52.6 L150.5 53.9 L152.1 55.3 L153.7 56.7 L155.3 58.1 L156.9 59.6 L158.5 61.0 L160.1 62.5 L161.6 64.1 L163.2 65.6 L164.7 67.2 L166.2 68.8 L167.7 70.4 L169.2 72.1 L170.6 73.7 L172.1 75.4 L173.5 77.1 L174.9 78.9 L176.3 80.6 L177.7 82.4 L179.0 84.2 L180.4 86.0 L181.7 87.9 L183.0 89.7 L184.3 91.6 L185.5 93.5 L186.8 95.4 L188.0 97.3 L189.2 99.2 L190.4 101.2 L191.5 103.1 L192.6 105.1 L193.7 107.1 L194.8 109.1 L195.9 111.1 L196.9 113.1 L197.9 115.2 L198.9 117.2 L199.8 119.3 L200.8 121.3 L201.7 123.4 L202.6 125.5 L203.4 127.5 L204.2 129.6 L205.0 131.7 L205.8 133.8 L206.5 135.9 L207.3 138.0 L208.0 140.1 L208.6 142.2 L209.2 144.3 L209.9 146.4 L210.4 148.5 L211.0 150.7 L211.5 152.8 L212.0 154.9 L212.4 157.0 L212.9 159.1 L213.3 161.2 L213.6 163.3 L214.0 165.3 L214.3 167.4 L214.6 169.5 L214.8 171.6 L215.1 173.6 L215.3 175.7 L215.4 177.7 L215.5 179.8 L215.7 181.8 L215.7 183.8 L215.8 185.8 L215.8 187.8 L204.8 183.3 L204.8 181.5 L204.8 179.7 L204.7 177.9 L204.6 176.1 L204.5 174.3 L204.4 172.5 L204.2 170.7 L204.0 168.8 L203.8 167.0 L203.5 165.1 L203.2 163.3 L202.9 161.4 L202.6 159.6 L202.2 157.7 L201.9 155.8 L201.4 154.0 L201.0 152.1 L200.5 150.2 L200.1 148.3 L199.5 146.5 L199.0 144.6 L198.4 142.7 L197.9 140.8 L197.2 139.0 L196.6 137.1 L195.9 135.2 L195.3 133.4 L194.5 131.5 L193.8 129.6 L193.1 127.8 L192.3 125.9 L191.5 124.1 L190.6 122.3 L189.8 120.4 L188.9 118.6 L188.0 116.8 L187.1 115.0 L186.2 113.2 L185.2 111.4 L184.2 109.7 L183.2 107.9 L182.2 106.2 L181.2 104.4 L180.1 102.7 L179.0 101.0 L177.9 99.3 L176.8 97.6 L175.7 96.0 L174.5 94.3 L173.3 92.7 L172.1 91.1 L170.9 89.5 L169.7 87.9 L168.5 86.3 L167.2 84.8 L165.9 83.3 L164.6 81.8 L163.3 80.3 L162.0 78.8 L160.7 77.4 L159.3 75.9 L158.0 74.5 L156.6 73.1 L155.2 71.8 L153.8 70.4 L152.4 69.1 L151.0 67.8 L149.6 66.6 L148.2 65.3 L146.7 64.1 L145.2 62.9 L143.8 61.8 L142.3 60.6 L140.8 59.5 L139.3 58.4 L137.8 57.4 L136.3 56.3 L134.8 55.3 L133.3 54.3 L131.8 53.4 L130.3 52.5 L128.7 51.6 L127.2 50.7 L125.7 49.9 L124.1 49.1 L122.6 48.3 L121.0 47.6 L119.5 46.8 L118.0 46.2 L116.4 45.5 L114.9 44.9 L113.3 44.3 L111.8 43.7 L110.2 43.2 L108.7 42.7 L107.1 42.2 L105.6 41.8 L104.1 41.4 L102.5 41.0 L101.0 40.7 L99.5 40.4 L98.0 40.1 L96.5 39.9 L95.0 39.6 L93.5 39.5 L92.0 39.3 L90.5 39.2 L89.0 39.1 L87.5 39.1 L86.1 39.1 L84.6 39.1 L83.2 39.1 L81.8 39.2 L80.3 39.3 L78.9 39.5 L77.5 39.7 L76.1 39.9 L74.8 40.1 L73.4 40.4 L72.1 40.7 L70.7 41.1 L69.4 41.5 L68.1 41.9 L66.8 42.3 L65.5 42.8 L64.3 43.3 L63.0 43.8 L61.8 44.4 L60.6 45.0 L59.4 45.6 L58.2 46.3 L57.0 47.0 L55.9 47.7 L54.8 48.5 L53.7 49.2 L52.6 50.0 L51.5 50.9 L50.5 51.8 L49.4 52.7 L48.4 53.6 L47.5 54.5 L46.5 55.5 L45.5 56.5 L44.6 57.6 L43.7 58.6 L42.8 59.7 L42.0 60.8 L41.1 62.0 L40.3 63.2 L39.5 64.4 L38.8 65.6 L38.0 66.8 L37.3 68.1 L36.6 69.4 L36.0 70.7 L35.3 72.1 L34.7 73.4 L34.1 74.8 L33.5 76.2 L33.0 77.6 L32.5 79.1 L32.0 80.6 L31.5 82.1 L31.1 83.6 L30.6 85.1 L30.3 86.6 L29.9 88.2 L29.5 89.8 L29.2 91.4 L29.0 93.0 L28.7 94.7 L28.5 96.3 L28.3 98.0 L28.1 99.7 L27.9 101.4 L27.8 103.1 L27.7 104.8 Z"/><path class="g" d="M38.0 97.0 L38.3 95.5 L38.6 94.1 L38.9 92.7 L39.3 91.3 L39.7 89.9 L40.1 88.6 L40.5 87.2 L40.9 85.9 L41.4 84.6 L41.9 83.3 L42.4 82.1 L42.9 80.8 L43.5 79.6 L44.1 78.4 L44.7 77.2 L45.3 76.0 L45.9 74.9 L46.6 73.8 L47.3 72.7 L48.0 71.6 L48.7 70.6 L49.5 69.5 L50.3 68.5 L51.0 67.5 L51.9 66.6 L52.7 65.6 L53.5 64.7 L54.4 63.9 L55.3 63.0 L56.2 62.2 L57.1 61.4 L58.1 60.6 L59.0 59.8 L60.0 59.1 L61.0 58.4 L62.0 57.7 L63.0 57.1 L64.1 56.4 L65.1 55.8 L66.2 55.3 L67.3 54.7 L68.4 54.2 L69.5 53.7 L70.7 53.3 L71.8 52.9 L73.0 52.5 L74.1 52.1 L75.3 51.8 L76.5 51.5 L77.7 51.2 L79.0 50.9 L80.2 50.7 L81.4 50.5 L82.7 50.3 L84.0 50.2 L85.2 50.1 L86.5 50.0 L87.8 50.0 L89.1 50.0 L90.4 50.0 L91.8 50.0 L93.1 50.1 L94.4 50.2 L95.8 50.3 L97.1 50.5 L98.5 50.7 L99.8 50.9 L101.2 51.1 L102.5 51.4 L103.9 51.7 L105.3 52.0 L106.7 52.4 L108.1 52.8 L109.4 53.2 L110.8 53.7 L112.2 54.1 L113.6 54.6 L115.0 55.2 L116.4 55.7 L117.8 56.3 L119.2 56.9 L120.6 57.6 L121.9 58.2 L123.3 58.9 L124.7 59.7 L126.1 60.4 L127.5 61.2 L128.8 62.0 L130.2 62.8 L131.6 63.7 L132.9 64.6 L134.3 65.5 L135.7 66.4 L137.0 67.3 L138.3 68.3 L139.7 69.3 L141.0 70.3 L142.3 71.4 L143.6 72.5 L144.9 73.6 L146.2 74.7 L147.5 75.8 L148.8 77.0 L150.0 78.2 L151.3 79.4 L152.5 80.6 L153.8 81.8 L155.0 83.1 L156.2 84.4 L157.4 85.7 L158.6 87.0 L159.7 88.3 L160.9 89.7 L162.0 91.0 L163.2 92.4 L164.3 93.8 L165.4 95.3 L166.5 96.7 L167.5 98.2 L168.6 99.6 L169.6 101.1 L170.7 102.6 L171.7 104.1 L172.7 105.6 L173.6 107.2 L174.6 108.7 L175.5 110.3 L176.4 111.8 L177.3 113.4 L178.2 115.0 L179.1 116.6 L179.9 118.2 L180.8 119.8 L181.6 121.5 L182.3 123.1 L183.1 124.7 L183.9 126.4 L184.6 128.0 L185.3 129.7 L186.0 131.4 L186.6 133.0 L187.3 134.7 L187.9 136.4 L188.5 138.1 L189.0 139.7 L189.6 141.4 L190.1 143.1 L190.6 144.8 L191.1 146.5 L191.6 148.2 L192.0 149.9 L192.4 151.5 L192.8 153.2 L193.2 154.9 L193.5 156.6 L193.9 158.3 L194.2 159.9 L194.4 161.6 L194.7 163.3 L194.9 164.9 L195.1 166.6 L195.3 168.2 L186.4 165.8 L186.2 164.3 L186.1 162.9 L185.9 161.4 L185.6 159.9 L185.4 158.4 L185.1 157.0 L184.8 155.5 L184.5 154.0 L184.2 152.5 L183.9 151.0 L183.5 149.5 L183.1 148.0 L182.7 146.5 L182.3 145.0 L181.8 143.5 L181.3 142.0 L180.9 140.5 L180.3 139.0 L179.8 137.5 L179.3 136.0 L178.7 134.6 L178.1 133.1 L177.5 131.6 L176.9 130.1 L176.2 128.7 L175.6 127.2 L174.9 125.7 L174.2 124.3 L173.5 122.8 L172.8 121.4 L172.0 120.0 L171.2 118.6 L170.5 117.2 L169.7 115.8 L168.8 114.4 L168.0 113.0 L167.2 111.6 L166.3 110.2 L165.4 108.9 L164.5 107.6 L163.6 106.2 L162.7 104.9 L161.8 103.6 L160.8 102.3 L159.9 101.0 L158.9 99.8 L157.9 98.5 L156.9 97.3 L155.9 96.1 L154.8 94.9 L153.8 93.7 L152.8 92.5 L151.7 91.4 L150.6 90.2 L149.5 89.1 L148.4 88.0 L147.3 86.9 L146.2 85.9 L145.1 84.8 L144.0 83.8 L142.8 82.8 L141.7 81.8 L140.5 80.8 L139.4 79.9 L138.2 78.9 L137.0 78.0 L135.8 77.1 L134.7 76.3 L133.5 75.4 L132.3 74.6 L131.1 73.8 L129.8 73.0 L128.6 72.3 L127.4 71.5 L126.2 70.8 L125.0 70.1 L123.8 69.5 L122.5 68.8 L121.3 68.2 L120.1 67.6 L118.8 67.0 L117.6 66.5 L116.4 66.0 L115.1 65.5 L113.9 65.0 L112.7 64.5 L111.4 64.1 L110.2 63.7 L109.0 63.3 L107.7 63.0 L106.5 62.7 L105.3 62.4 L104.1 62.1 L102.9 61.9 L101.7 61.6 L100.5 61.5 L99.3 61.3 L98.1 61.1 L96.9 61.0 L95.7 60.9 L94.5 60.9 L93.3 60.8 L92.2 60.8 L91.0 60.8 L89.9 60.9 L88.7 61.0 L87.6 61.1 L86.5 61.2 L85.4 61.3 L84.2 61.5 L83.2 61.7 L82.1 61.9 L81.0 62.2 L79.9 62.4 L78.9 62.7 L77.8 63.1 L76.8 63.4 L75.8 63.8 L74.8 64.2 L73.8 64.6 L72.8 65.1 L71.8 65.6 L70.9 66.1 L69.9 66.6 L69.0 67.1 L68.1 67.7 L67.2 68.3 L66.3 68.9 L65.5 69.6 L64.6 70.3 L63.8 70.9 L62.9 71.7 L62.1 72.4 L61.4 73.2 L60.6 73.9 L59.8 74.8 L59.1 75.6 L58.4 76.4 L57.7 77.3 L57.0 78.2 L56.3 79.1 L55.7 80.0 L55.0 81.0 L54.4 82.0 L53.8 83.0 L53.3 84.0 L52.7 85.0 L52.2 86.1 L51.7 87.1 L51.2 88.2 L50.7 89.3 L50.2 90.5 L49.8 91.6 L49.4 92.8 L49.0 93.9 L48.6 95.1 L48.3 96.3 L47.9 97.5 L47.6 98.8 L47.3 100.0 L47.1 101.3 L46.8 102.6 Z"/><path class="g thin" d="M50.7 105.1 L51.0 103.9 L51.2 102.7 L51.5 101.5 L51.8 100.3 L52.1 99.2 L52.4 98.0 L52.8 96.9 L53.2 95.8 L53.6 94.7 L54.0 93.6 L54.4 92.6 L54.8 91.5 L55.3 90.5 L55.8 89.5 L56.3 88.5 L56.8 87.5 L57.4 86.6 L57.9 85.6 L58.5 84.7 L59.1 83.8 L59.7 82.9 L60.3 82.1 L61.0 81.2 L61.6 80.4 L62.3 79.6 L63.0 78.8 L63.7 78.0 L64.4 77.3 L65.2 76.6 L65.9 75.9 L66.7 75.2 L67.5 74.6 L68.3 73.9 L69.1 73.3 L70.0 72.7 L70.8 72.2 L71.7 71.6 L72.5 71.1 L73.4 70.6 L74.3 70.1 L75.2 69.7 L76.2 69.2 L77.1 68.8 L78.1 68.5 L79.0 68.1 L80.0 67.8 L81.0 67.5 L82.0 67.2 L83.0 66.9 L84.0 66.7 L85.0 66.5 L86.0 66.3 L87.1 66.1 L88.1 66.0 L89.2 65.9 L90.3 65.8 L91.3 65.7 L92.4 65.7 L93.5 65.7 L94.6 65.7 L95.7 65.7 L96.8 65.8 L98.0 65.9 L99.1 66.0 L100.2 66.1 L101.3 66.3 L102.5 66.4 L103.6 66.6 L104.8 66.9 L105.9 67.1 L107.1 67.4 L108.2 67.7 L109.4 68.0 L110.5 68.4 L111.7 68.8 L112.9 69.2 L114.0 69.6 L115.2 70.0 L116.4 70.5 L117.5 71.0 L118.7 71.5 L119.8 72.0 L121.0 72.6 L122.2 73.2 L123.3 73.8 L124.5 74.4 L125.6 75.1 L126.8 75.8 L127.9 76.4 L129.1 77.2 L130.2 77.9 L131.4 78.7 L132.5 79.4 L133.6 80.2 L134.7 81.0 L135.9 81.9 L137.0 82.7 L138.1 83.6 L139.2 84.5 L140.3 85.4 L141.3 86.4 L142.4 87.3 L143.5 88.3 L144.5 89.3 L145.6 90.3 L146.6 91.3 L147.7 92.4 L148.7 93.4 L149.7 94.5 L150.7 95.6 L151.7 96.7 L152.7 97.8 L153.6 98.9 L154.6 100.1 L155.5 101.2 L156.5 102.4 L157.4 103.6 L158.3 104.8 L159.2 106.0 L160.1 107.3 L161.0 108.5 L161.8 109.8 L162.7 111.0 L163.5 112.3 L164.3 113.6 L165.1 114.9 L165.9 116.2 L166.7 117.5 L167.4 118.8 L168.1 120.1 L168.9 121.5 L169.6 122.8 L170.3 124.2 L170.9 125.6 L171.6 126.9 L172.2 128.3 L172.9 129.7 L173.5 131.1 L174.1 132.4 L174.6 133.8 L175.2 135.2 L175.7 136.6 L176.2 138.0 L176.7 139.4 L177.2 140.9 L177.7 142.3 L178.1 143.7 L178.5 145.1 L178.9 146.5 L179.3 147.9 L179.7 149.3 L180.0 150.7 L180.4 152.2 L180.7 153.6 L181.0 155.0 L181.2 156.4 L181.5 157.8 L181.7 159.2 L181.9 160.6 L182.1 162.0 L182.3 163.3 L182.4 164.7"/><path class="g thin" d="M106.7 52.4 L108.2 67.7"/></g>' },
+  { match: 'brake', vb: '11 20 211 174', tip: 'Drum edge in the outer arc – brake shoe lining in the inner arc',
+    svg: '<path class="g" d="M16.8 99.6 L16.9 97.7 L17.0 95.8 L17.2 93.9 L17.4 92.0 L17.6 90.1 L17.9 88.2 L18.2 86.4 L18.5 84.6 L18.8 82.8 L19.2 81.0 L19.6 79.2 L20.1 77.5 L20.5 75.8 L21.0 74.1 L21.6 72.4 L22.1 70.7 L22.7 69.1 L23.3 67.5 L24.0 65.9 L24.6 64.4 L25.3 62.8 L26.0 61.3 L26.8 59.8 L27.6 58.4 L28.4 57.0 L29.2 55.6 L30.1 54.2 L31.0 52.8 L31.9 51.5 L32.8 50.2 L33.8 49.0 L34.8 47.8 L35.8 46.6 L36.8 45.4 L37.9 44.3 L39.0 43.2 L40.1 42.1 L41.2 41.0 L42.4 40.0 L43.5 39.0 L44.7 38.1 L45.9 37.2 L47.2 36.3 L48.5 35.5 L49.7 34.7 L51.0 33.9 L52.4 33.1 L53.7 32.4 L55.1 31.8 L56.5 31.1 L57.9 30.5 L59.3 30.0 L60.7 29.4 L62.2 28.9 L63.6 28.5 L65.1 28.0 L66.6 27.7 L68.1 27.3 L69.7 27.0 L71.2 26.7 L72.8 26.5 L74.3 26.3 L75.9 26.1 L77.5 26.0 L79.1 25.9 L80.7 25.8 L82.4 25.8 L84.0 25.8 L85.6 25.8 L87.3 25.9 L89.0 26.1 L90.6 26.2 L92.3 26.4 L94.0 26.7 L95.7 26.9 L97.4 27.2 L99.1 27.6 L100.9 28.0 L102.6 28.4 L104.3 28.8 L106.0 29.3 L107.8 29.8 L109.5 30.4 L111.2 31.0 L113.0 31.6 L114.7 32.3 L116.4 33.0 L118.2 33.7 L119.9 34.5 L121.6 35.3 L123.4 36.1 L125.1 37.0 L126.8 37.9 L128.6 38.9 L130.3 39.8 L132.0 40.8 L133.7 41.9 L135.4 42.9 L137.1 44.0 L138.8 45.2 L140.5 46.3 L142.2 47.5 L143.9 48.7 L145.5 50.0 L147.2 51.3 L148.8 52.6 L150.5 53.9 L152.1 55.3 L153.7 56.7 L155.3 58.1 L156.9 59.6 L158.5 61.0 L160.1 62.5 L161.6 64.1 L163.2 65.6 L164.7 67.2 L166.2 68.8 L167.7 70.4 L169.2 72.1 L170.6 73.7 L172.1 75.4 L173.5 77.1 L174.9 78.9 L176.3 80.6 L177.7 82.4 L179.0 84.2 L180.4 86.0 L181.7 87.9 L183.0 89.7 L184.3 91.6 L185.5 93.5 L186.8 95.4 L188.0 97.3 L189.2 99.2 L190.4 101.2 L191.5 103.1 L192.6 105.1 L193.7 107.1 L194.8 109.1 L195.9 111.1 L196.9 113.1 L197.9 115.2 L198.9 117.2 L199.8 119.3 L200.8 121.3 L201.7 123.4 L202.6 125.5 L203.4 127.5 L204.2 129.6 L205.0 131.7 L205.8 133.8 L206.5 135.9 L207.3 138.0 L208.0 140.1 L208.6 142.2 L209.2 144.3 L209.9 146.4 L210.4 148.5 L211.0 150.7 L211.5 152.8 L212.0 154.9 L212.4 157.0 L212.9 159.1 L213.3 161.2 L213.6 163.3 L214.0 165.3 L214.3 167.4 L214.6 169.5 L214.8 171.6 L215.1 173.6 L215.3 175.7 L215.4 177.7 L215.5 179.8 L215.7 181.8 L215.7 183.8 L215.8 185.8 L215.8 187.8 L204.8 183.3 L204.8 181.5 L204.8 179.7 L204.7 177.9 L204.6 176.1 L204.5 174.3 L204.4 172.5 L204.2 170.7 L204.0 168.8 L203.8 167.0 L203.5 165.1 L203.2 163.3 L202.9 161.4 L202.6 159.6 L202.2 157.7 L201.9 155.8 L201.4 154.0 L201.0 152.1 L200.5 150.2 L200.1 148.3 L199.5 146.5 L199.0 144.6 L198.4 142.7 L197.9 140.8 L197.2 139.0 L196.6 137.1 L195.9 135.2 L195.3 133.4 L194.5 131.5 L193.8 129.6 L193.1 127.8 L192.3 125.9 L191.5 124.1 L190.6 122.3 L189.8 120.4 L188.9 118.6 L188.0 116.8 L187.1 115.0 L186.2 113.2 L185.2 111.4 L184.2 109.7 L183.2 107.9 L182.2 106.2 L181.2 104.4 L180.1 102.7 L179.0 101.0 L177.9 99.3 L176.8 97.6 L175.7 96.0 L174.5 94.3 L173.3 92.7 L172.1 91.1 L170.9 89.5 L169.7 87.9 L168.5 86.3 L167.2 84.8 L165.9 83.3 L164.6 81.8 L163.3 80.3 L162.0 78.8 L160.7 77.4 L159.3 75.9 L158.0 74.5 L156.6 73.1 L155.2 71.8 L153.8 70.4 L152.4 69.1 L151.0 67.8 L149.6 66.6 L148.2 65.3 L146.7 64.1 L145.2 62.9 L143.8 61.8 L142.3 60.6 L140.8 59.5 L139.3 58.4 L137.8 57.4 L136.3 56.3 L134.8 55.3 L133.3 54.3 L131.8 53.4 L130.3 52.5 L128.7 51.6 L127.2 50.7 L125.7 49.9 L124.1 49.1 L122.6 48.3 L121.0 47.6 L119.5 46.8 L118.0 46.2 L116.4 45.5 L114.9 44.9 L113.3 44.3 L111.8 43.7 L110.2 43.2 L108.7 42.7 L107.1 42.2 L105.6 41.8 L104.1 41.4 L102.5 41.0 L101.0 40.7 L99.5 40.4 L98.0 40.1 L96.5 39.9 L95.0 39.6 L93.5 39.5 L92.0 39.3 L90.5 39.2 L89.0 39.1 L87.5 39.1 L86.1 39.1 L84.6 39.1 L83.2 39.1 L81.8 39.2 L80.3 39.3 L78.9 39.5 L77.5 39.7 L76.1 39.9 L74.8 40.1 L73.4 40.4 L72.1 40.7 L70.7 41.1 L69.4 41.5 L68.1 41.9 L66.8 42.3 L65.5 42.8 L64.3 43.3 L63.0 43.8 L61.8 44.4 L60.6 45.0 L59.4 45.6 L58.2 46.3 L57.0 47.0 L55.9 47.7 L54.8 48.5 L53.7 49.2 L52.6 50.0 L51.5 50.9 L50.5 51.8 L49.4 52.7 L48.4 53.6 L47.5 54.5 L46.5 55.5 L45.5 56.5 L44.6 57.6 L43.7 58.6 L42.8 59.7 L42.0 60.8 L41.1 62.0 L40.3 63.2 L39.5 64.4 L38.8 65.6 L38.0 66.8 L37.3 68.1 L36.6 69.4 L36.0 70.7 L35.3 72.1 L34.7 73.4 L34.1 74.8 L33.5 76.2 L33.0 77.6 L32.5 79.1 L32.0 80.6 L31.5 82.1 L31.1 83.6 L30.6 85.1 L30.3 86.6 L29.9 88.2 L29.5 89.8 L29.2 91.4 L29.0 93.0 L28.7 94.7 L28.5 96.3 L28.3 98.0 L28.1 99.7 L27.9 101.4 L27.8 103.1 L27.7 104.8 Z"/><path class="g" d="M38.0 97.0 L38.3 95.5 L38.6 94.1 L38.9 92.7 L39.3 91.3 L39.7 89.9 L40.1 88.6 L40.5 87.2 L40.9 85.9 L41.4 84.6 L41.9 83.3 L42.4 82.1 L42.9 80.8 L43.5 79.6 L44.1 78.4 L44.7 77.2 L45.3 76.0 L45.9 74.9 L46.6 73.8 L47.3 72.7 L48.0 71.6 L48.7 70.6 L49.5 69.5 L50.3 68.5 L51.0 67.5 L51.9 66.6 L52.7 65.6 L53.5 64.7 L54.4 63.9 L55.3 63.0 L56.2 62.2 L57.1 61.4 L58.1 60.6 L59.0 59.8 L60.0 59.1 L61.0 58.4 L62.0 57.7 L63.0 57.1 L64.1 56.4 L65.1 55.8 L66.2 55.3 L67.3 54.7 L68.4 54.2 L69.5 53.7 L70.7 53.3 L71.8 52.9 L73.0 52.5 L74.1 52.1 L75.3 51.8 L76.5 51.5 L77.7 51.2 L79.0 50.9 L80.2 50.7 L81.4 50.5 L82.7 50.3 L84.0 50.2 L85.2 50.1 L86.5 50.0 L87.8 50.0 L89.1 50.0 L90.4 50.0 L91.8 50.0 L93.1 50.1 L94.4 50.2 L95.8 50.3 L97.1 50.5 L98.5 50.7 L99.8 50.9 L101.2 51.1 L102.5 51.4 L103.9 51.7 L105.3 52.0 L106.7 52.4 L108.1 52.8 L109.4 53.2 L110.8 53.7 L112.2 54.1 L113.6 54.6 L115.0 55.2 L116.4 55.7 L117.8 56.3 L119.2 56.9 L120.6 57.6 L121.9 58.2 L123.3 58.9 L124.7 59.7 L126.1 60.4 L127.5 61.2 L128.8 62.0 L130.2 62.8 L131.6 63.7 L132.9 64.6 L134.3 65.5 L135.7 66.4 L137.0 67.3 L138.3 68.3 L139.7 69.3 L141.0 70.3 L142.3 71.4 L143.6 72.5 L144.9 73.6 L146.2 74.7 L147.5 75.8 L148.8 77.0 L150.0 78.2 L151.3 79.4 L152.5 80.6 L153.8 81.8 L155.0 83.1 L156.2 84.4 L157.4 85.7 L158.6 87.0 L159.7 88.3 L160.9 89.7 L162.0 91.0 L163.2 92.4 L164.3 93.8 L165.4 95.3 L166.5 96.7 L167.5 98.2 L168.6 99.6 L169.6 101.1 L170.7 102.6 L171.7 104.1 L172.7 105.6 L173.6 107.2 L174.6 108.7 L175.5 110.3 L176.4 111.8 L177.3 113.4 L178.2 115.0 L179.1 116.6 L179.9 118.2 L180.8 119.8 L181.6 121.5 L182.3 123.1 L183.1 124.7 L183.9 126.4 L184.6 128.0 L185.3 129.7 L186.0 131.4 L186.6 133.0 L187.3 134.7 L187.9 136.4 L188.5 138.1 L189.0 139.7 L189.6 141.4 L190.1 143.1 L190.6 144.8 L191.1 146.5 L191.6 148.2 L192.0 149.9 L192.4 151.5 L192.8 153.2 L193.2 154.9 L193.5 156.6 L193.9 158.3 L194.2 159.9 L194.4 161.6 L194.7 163.3 L194.9 164.9 L195.1 166.6 L195.3 168.2 L186.4 165.8 L186.2 164.3 L186.1 162.9 L185.9 161.4 L185.6 159.9 L185.4 158.4 L185.1 157.0 L184.8 155.5 L184.5 154.0 L184.2 152.5 L183.9 151.0 L183.5 149.5 L183.1 148.0 L182.7 146.5 L182.3 145.0 L181.8 143.5 L181.3 142.0 L180.9 140.5 L180.3 139.0 L179.8 137.5 L179.3 136.0 L178.7 134.6 L178.1 133.1 L177.5 131.6 L176.9 130.1 L176.2 128.7 L175.6 127.2 L174.9 125.7 L174.2 124.3 L173.5 122.8 L172.8 121.4 L172.0 120.0 L171.2 118.6 L170.5 117.2 L169.7 115.8 L168.8 114.4 L168.0 113.0 L167.2 111.6 L166.3 110.2 L165.4 108.9 L164.5 107.6 L163.6 106.2 L162.7 104.9 L161.8 103.6 L160.8 102.3 L159.9 101.0 L158.9 99.8 L157.9 98.5 L156.9 97.3 L155.9 96.1 L154.8 94.9 L153.8 93.7 L152.8 92.5 L151.7 91.4 L150.6 90.2 L149.5 89.1 L148.4 88.0 L147.3 86.9 L146.2 85.9 L145.1 84.8 L144.0 83.8 L142.8 82.8 L141.7 81.8 L140.5 80.8 L139.4 79.9 L138.2 78.9 L137.0 78.0 L135.8 77.1 L134.7 76.3 L133.5 75.4 L132.3 74.6 L131.1 73.8 L129.8 73.0 L128.6 72.3 L127.4 71.5 L126.2 70.8 L125.0 70.1 L123.8 69.5 L122.5 68.8 L121.3 68.2 L120.1 67.6 L118.8 67.0 L117.6 66.5 L116.4 66.0 L115.1 65.5 L113.9 65.0 L112.7 64.5 L111.4 64.1 L110.2 63.7 L109.0 63.3 L107.7 63.0 L106.5 62.7 L105.3 62.4 L104.1 62.1 L102.9 61.9 L101.7 61.6 L100.5 61.5 L99.3 61.3 L98.1 61.1 L96.9 61.0 L95.7 60.9 L94.5 60.9 L93.3 60.8 L92.2 60.8 L91.0 60.8 L89.9 60.9 L88.7 61.0 L87.6 61.1 L86.5 61.2 L85.4 61.3 L84.2 61.5 L83.2 61.7 L82.1 61.9 L81.0 62.2 L79.9 62.4 L78.9 62.7 L77.8 63.1 L76.8 63.4 L75.8 63.8 L74.8 64.2 L73.8 64.6 L72.8 65.1 L71.8 65.6 L70.9 66.1 L69.9 66.6 L69.0 67.1 L68.1 67.7 L67.2 68.3 L66.3 68.9 L65.5 69.6 L64.6 70.3 L63.8 70.9 L62.9 71.7 L62.1 72.4 L61.4 73.2 L60.6 73.9 L59.8 74.8 L59.1 75.6 L58.4 76.4 L57.7 77.3 L57.0 78.2 L56.3 79.1 L55.7 80.0 L55.0 81.0 L54.4 82.0 L53.8 83.0 L53.3 84.0 L52.7 85.0 L52.2 86.1 L51.7 87.1 L51.2 88.2 L50.7 89.3 L50.2 90.5 L49.8 91.6 L49.4 92.8 L49.0 93.9 L48.6 95.1 L48.3 96.3 L47.9 97.5 L47.6 98.8 L47.3 100.0 L47.1 101.3 L46.8 102.6 Z"/><path class="g thin" d="M50.7 105.1 L51.0 103.9 L51.2 102.7 L51.5 101.5 L51.8 100.3 L52.1 99.2 L52.4 98.0 L52.8 96.9 L53.2 95.8 L53.6 94.7 L54.0 93.6 L54.4 92.6 L54.8 91.5 L55.3 90.5 L55.8 89.5 L56.3 88.5 L56.8 87.5 L57.4 86.6 L57.9 85.6 L58.5 84.7 L59.1 83.8 L59.7 82.9 L60.3 82.1 L61.0 81.2 L61.6 80.4 L62.3 79.6 L63.0 78.8 L63.7 78.0 L64.4 77.3 L65.2 76.6 L65.9 75.9 L66.7 75.2 L67.5 74.6 L68.3 73.9 L69.1 73.3 L70.0 72.7 L70.8 72.2 L71.7 71.6 L72.5 71.1 L73.4 70.6 L74.3 70.1 L75.2 69.7 L76.2 69.2 L77.1 68.8 L78.1 68.5 L79.0 68.1 L80.0 67.8 L81.0 67.5 L82.0 67.2 L83.0 66.9 L84.0 66.7 L85.0 66.5 L86.0 66.3 L87.1 66.1 L88.1 66.0 L89.2 65.9 L90.3 65.8 L91.3 65.7 L92.4 65.7 L93.5 65.7 L94.6 65.7 L95.7 65.7 L96.8 65.8 L98.0 65.9 L99.1 66.0 L100.2 66.1 L101.3 66.3 L102.5 66.4 L103.6 66.6 L104.8 66.9 L105.9 67.1 L107.1 67.4 L108.2 67.7 L109.4 68.0 L110.5 68.4 L111.7 68.8 L112.9 69.2 L114.0 69.6 L115.2 70.0 L116.4 70.5 L117.5 71.0 L118.7 71.5 L119.8 72.0 L121.0 72.6 L122.2 73.2 L123.3 73.8 L124.5 74.4 L125.6 75.1 L126.8 75.8 L127.9 76.4 L129.1 77.2 L130.2 77.9 L131.4 78.7 L132.5 79.4 L133.6 80.2 L134.7 81.0 L135.9 81.9 L137.0 82.7 L138.1 83.6 L139.2 84.5 L140.3 85.4 L141.3 86.4 L142.4 87.3 L143.5 88.3 L144.5 89.3 L145.6 90.3 L146.6 91.3 L147.7 92.4 L148.7 93.4 L149.7 94.5 L150.7 95.6 L151.7 96.7 L152.7 97.8 L153.6 98.9 L154.6 100.1 L155.5 101.2 L156.5 102.4 L157.4 103.6 L158.3 104.8 L159.2 106.0 L160.1 107.3 L161.0 108.5 L161.8 109.8 L162.7 111.0 L163.5 112.3 L164.3 113.6 L165.1 114.9 L165.9 116.2 L166.7 117.5 L167.4 118.8 L168.1 120.1 L168.9 121.5 L169.6 122.8 L170.3 124.2 L170.9 125.6 L171.6 126.9 L172.2 128.3 L172.9 129.7 L173.5 131.1 L174.1 132.4 L174.6 133.8 L175.2 135.2 L175.7 136.6 L176.2 138.0 L176.7 139.4 L177.2 140.9 L177.7 142.3 L178.1 143.7 L178.5 145.1 L178.9 146.5 L179.3 147.9 L179.7 149.3 L180.0 150.7 L180.4 152.2 L180.7 153.6 L181.0 155.0 L181.2 156.4 L181.5 157.8 L181.7 159.2 L181.9 160.6 L182.1 162.0 L182.3 163.3 L182.4 164.7"/><path class="g thin" d="M106.7 52.4 L108.2 67.7"/>' },
+];
+
+function guideFor(name) {
+  const n = name.toLowerCase();
+  return GUIDES.find(g => typeof g.match === 'string' ? n.includes(g.match) : g.match.test(n)) || { tip: '', svg: CORNERS };
+}
+
+function updateCameraBanner(note) {
+  const slot = currentSlot();
+  const i = photos[currentCameraType].indexOf(slot);
+  document.getElementById('cam-banner').style.display = 'block';
+  document.getElementById('cam-step').textContent =
+    (note ? note + ' · next: ' : '') + `${GROUP_LABEL[currentCameraType]} photo ${i + 1} of ${photos[currentCameraType].length}`;
+  document.getElementById('cam-what').textContent = slot.name;
+  const guide = guideFor(slot.name);
+  document.getElementById('cam-tip').textContent = guide.tip;
+  document.getElementById('cam-guide').innerHTML =
+    `<svg viewBox="${guide.vb || '0 0 100 100'}" preserveAspectRatio="xMidYMid meet">${guide.svg}</svg>`;
+  document.getElementById('camera-modal').classList.toggle('need-landscape', !!guide.landscape);
+}
+
+const isPortrait = () => window.matchMedia('(orientation: portrait)').matches;
+
+// Pregled prikazuje ceo kadar (ono što se stvarno slika). Silueta se smešta samo preko
+// dela ekrana gde je slika, da se poklopi sa onim što ode u izveštaj.
+function fitGuideToVideo() {
+  const video = document.getElementById('camera-video');
+  const guide = document.getElementById('cam-guide');
+  const W = window.innerWidth, H = window.innerHeight;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const land = window.matchMedia('(orientation: landscape) and (max-height: 600px)').matches;
+  const m = land ? { t: 92, b: 12, l: 16, r: 150 } : { t: 205, b: 115, l: W * 0.08, r: W * 0.08 };
+  let rect = { l: 0, t: 0, r: W, b: H };
+  if (vw && vh) {
+    const k = Math.min(W / vw, H / vh), dw = vw * k, dh = vh * k;
+    rect = { l: (W - dw) / 2, t: (H - dh) / 2, r: (W + dw) / 2, b: (H + dh) / 2 };
+  }
+  guide.style.left = Math.max(m.l, rect.l + 6) + 'px';
+  guide.style.right = Math.max(m.r, W - rect.r + 6) + 'px';
+  guide.style.top = Math.max(m.t, rect.t + 6) + 'px';
+  guide.style.bottom = Math.max(m.b, H - rect.b + 6) + 'px';
+}
+document.getElementById('camera-video').addEventListener('loadedmetadata', fitGuideToVideo);
+document.getElementById('camera-video').addEventListener('resize', fitGuideToVideo);
+window.addEventListener('resize', fitGuideToVideo);
+
+async function openCamera() {
+  try {
+    if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false
+    });
+    // bez digitalnog zuma – najširi kadar koji kamera daje
+    const track = cameraStream.getVideoTracks()[0];
+    try {
+      const caps = track.getCapabilities ? track.getCapabilities() : {};
+      if (caps.zoom) await track.applyConstraints({ advanced: [{ zoom: caps.zoom.min }] });
+    } catch (e) {}
+    document.getElementById('camera-video').srcObject = cameraStream;
+    document.getElementById('camera-modal').classList.add('open');
+    fitGuideToVideo();
+  } catch (err) {
+    alert('Camera access denied or not available.');
+  }
+}
+
+async function flipCamera() {
+  facingMode = facingMode === 'environment' ? 'user' : 'environment';
+  await openCamera();
+}
+
+// Posle snimka: sledeća fotografija, ili kraj ako je spisak završen
+function advanceShot(note) {
+  renderPhotos(currentCameraType);
+  shotQueue.shift();
+  if (shotQueue.length) updateCameraBanner(note);
+  else closeCamera();
+}
+
+function snapPhoto() {
+  const video = document.getElementById('camera-video');
+  if (!video.videoWidth || !shotQueue.length) return;
+  if (guideFor(currentSlot().name).landscape && isPortrait()) return; // mora vodoravno
+  const canvas = document.getElementById('camera-canvas');
+  // kraća stranica najviše 800 px – ista oštrina uspravno i vodoravno
+  const scale = Math.min(1, 800 / Math.min(video.videoWidth, video.videoHeight));
+  canvas.width = Math.round(video.videoWidth * scale);
+  canvas.height = Math.round(video.videoHeight * scale);
+  canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  const slot = currentSlot();
+  slot.dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+  slot.url = null;
+  slot.status = 'done';
+  advanceShot('✓ Saved');
+}
+
+function closeCamera() {
+  if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+  document.getElementById('camera-modal').classList.remove('open');
+  document.getElementById('camera-modal').classList.remove('need-landscape');
+  shotQueue = [];
+}
+
+function renderPhotos(type) {
+  const s = photos[type];
+  const done = count(type, 'done'), pending = count(type, 'pending');
+  const label = GROUP_LABEL[type].toLowerCase();
+
+  document.getElementById(type + '-progress').innerHTML =
+    `<b>${done} / ${s.length}</b> photos taken${pending ? '' : ' ✅'}`;
+
+  // Samo prikaz stanja – pojedinačne stavke se ne mogu kliknuti
+  document.getElementById(type + '-list').innerHTML = s.map((p, i) => `
+    <div class="shot-row ${p.status}">
+      <div class="shot-num">${p.status === 'done' ? '✓' : i + 1}</div>
+      <div class="shot-name">${esc(p.name)}</div>
+    </div>`).join('');
+
+  const btn = document.getElementById(type + '-start-btn');
+  btn.style.display = 'block';
+  if (pending === s.length) btn.textContent = `📷 Start ${label} photos`;
+  else if (pending) btn.textContent = `📷 Continue ${label} photos (${pending} left)`;
+  else btn.style.display = 'none';
+}
+
+// ─── DRIVER SUBMIT ────────────────────────────────────────
+async function uploadGroup(type, label, token) {
+  const urls = [];
+  for (let i = 0; i < photos[type].length; i++) {
+    const p = photos[type][i];
+    if (!p.dataUrl) continue;
+    if (!p.url) {
+      const [meta, base64] = p.dataUrl.split(',');
+      const mimeType = meta.split(';')[0].split(':')[1];
+      const result = await callApi('upload_image', { kind: type, label, shot: p.name || '', base64, mimeType }, token);
+      p.url = result.url; // ako slanje pukne kasnije, ne šaljemo istu sliku ponovo
+    }
+    urls.push(p.url);
+  }
+  return urls;
+}
+
+async function submitForm() {
+  const name = document.getElementById('f-name').value.trim();
+  const driverid = document.getElementById('f-driverid').value.trim();
+  const truck = document.getElementById('f-truck').value.trim();
+  const trailer = document.getElementById('f-trailer').value.trim();
+  const notes = document.getElementById('f-notes').value.trim();
+
+  if (!name || !driverid || !truck || !trailer) { showStatus('form', 'error', '⚠️ Please fill in all required fields.'); return; }
+  if (!/^\d{4}$/.test(driverid)) { showStatus('form', 'error', '⚠️ Driver ID must be exactly 4 digits.'); return; }
+  for (const type of ['truck', 'trailer']) {
+    if (count(type, 'pending')) {
+      showStatus('form', 'error', `⚠️ Please finish ${type} photos first (${count(type, 'pending')} left).`);
+      return;
+    }
+  }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  showStatus('form', 'loading', '<span class="spinner"></span> Verifying driver...');
+
+  try {
+    const verify = await callApi('verify_driver', { name, driverid });
+    if (!verify.valid) {
+      showStatus('form', 'error', '❌ Name and Driver ID do not match. Please check your name and the last 4 digits of your phone.');
+      btn.disabled = false;
+      return;
+    }
+
+    showStatus('form', 'loading', '<span class="spinner"></span> Uploading photos...');
+    const truckUrls = await uploadGroup('truck', truck, verify.token);
+    const trailerUrls = await uploadGroup('trailer', trailer, verify.token);
+
+    showStatus('form', 'loading', '<span class="spinner"></span> Saving report...');
+    await callApi('append_row', { truck, trailer, notes, truckUrls, trailerUrls }, verify.token);
+
+    showStatus('form', 'success', '✅ Report submitted successfully!');
+    ['f-name', 'f-driverid', 'f-truck', 'f-trailer', 'f-notes'].forEach(id => document.getElementById(id).value = '');
+    photos.truck = makeSlots('truck'); photos.trailer = makeSlots('trailer');
+    renderPhotos('truck'); renderPhotos('trailer');
+  } catch (err) {
+    showStatus('form', 'error', '❌ Error: ' + esc(err.message));
+  }
+  btn.disabled = false;
+}
+
+// ─── ADMIN ────────────────────────────────────────────────
+async function adminLogin() {
+  const input = document.getElementById('admin-pass');
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  try {
+    const { token, role } = await callApi('admin_login', { password: input.value });
+    setAdminToken(token);
+    input.value = '';
+    document.getElementById('login-msg').className = 'status-msg';
+    setAdminRole(role);
+    showAdminTab('reports');
+    showPage('admin');
+    loadRecords();
+  } catch (err) {
+    showStatus('login', 'error', '❌ ' + esc(err.message));
+  }
+  btn.disabled = false;
+}
+
+function adminLogout() {
+  setAdminToken(null);
+  allRows = []; allDrivers = []; editingDriver = null; adminRole = null;
+  document.getElementById('records-list').innerHTML = '';
+  document.getElementById('drv-list').innerHTML = '';
+  driverMsg('', '');
+  showAdminTab('reports');
+  showPage('login');
+}
+
+function handleAuthError(err) {
+  if (err.status === 401) {
+    setAdminToken(null);
+    showPage('login');
+    showStatus('login', 'error', '🔒 Session expired. Please log in again.');
+    return true;
+  }
+  return false;
+}
+
+let allRows = [];
+let currentPage = 1;
+let lightboxSets = {};
+
+function filterAndRender() {
+  const search = document.getElementById('search-input').value.toLowerCase().trim();
+  const perPage = parseInt(document.getElementById('per-page').value, 10);
+
+  const filtered = search ? allRows.filter(row => {
+    const [, name, driverId, truck, trailer] = row.data;
+    return [name, driverId, truck, trailer].some(v => (v || '').toLowerCase().includes(search));
+  }) : allRows;
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  if (currentPage > totalPages) currentPage = 1;
+  const start = (currentPage - 1) * perPage;
+
+  renderRows(filtered.slice(start, start + perPage));
+  renderPagination(currentPage, totalPages, filtered.length, perPage);
+}
+
+function renderPagination(page, totalPages, total, perPage) {
+  const top = document.getElementById('pagination-top');
+  const bottom = document.getElementById('pagination-bottom');
+  if (total === 0) { top.innerHTML = ''; bottom.innerHTML = ''; return; }
+  const start = (page - 1) * perPage + 1;
+  const end = Math.min(page * perPage, total);
+  const info = `<span class="page-info">Showing ${start}–${end} of ${total}</span>`;
+  let btns = `<button class="page-btn" onclick="goPage(${page - 1})" ${page <= 1 ? 'disabled' : ''}>‹ Prev</button>`;
+  let startP = Math.max(1, page - 2);
+  const endP = Math.min(totalPages, startP + 4);
+  if (endP - startP < 4) startP = Math.max(1, endP - 4);
+  for (let i = startP; i <= endP; i++) {
+    btns += `<button class="page-btn ${i === page ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  btns += `<button class="page-btn" onclick="goPage(${page + 1})" ${page >= totalPages ? 'disabled' : ''}>Next ›</button>`;
+  top.innerHTML = info + btns;
+  bottom.innerHTML = totalPages > 1 ? info + btns : '';
+}
+
+function goPage(p) {
+  currentPage = p;
+  filterAndRender();
+  window.scrollTo(0, document.getElementById('records-list').offsetTop - 20);
+}
+
+// Slike su na Cloudinary-ju (stari izveštaji) ili na R2 – server već proverava adrese
+function safeImageUrl(u) {
+  return /^https:\/\/[^\s"'<>]+$/.test(u || '') ? u : null;
+}
+
+// Naziv fotografije je upisan u ime fajla: truck__LR-Tires__T-1042__... (stare slike ga nemaju)
+function shotFromUrl(u) {
+  const parts = u.split('/').pop().split('.')[0].split('__');
+  return parts.length >= 3 ? parts[1].replace(/-/g, ' ') : '';
+}
+
+function toPhotoItems(cell) {
+  const list = Array.isArray(cell) ? cell : (cell || '').split(' | ');
+  return list.map(safeImageUrl).filter(Boolean).map(url => ({ url, cap: shotFromUrl(url) }));
+}
+
+// 2026-10-08 → 10/8/2026
+function fmtDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  return m ? `${+m[2]}/${+m[3]}/${m[1]}` : (iso || '—');
+}
+
+function renderRows(rows) {
+  const list = document.getElementById('records-list');
+  lightboxSets = {};
+  if (!rows.length) { list.innerHTML = '<div class="no-records">📭 No results found.</div>'; return; }
+
+  list.innerHTML = rows.map(row => {
+    const id = row.id; // ID izveštaja u bazi
+    const [ts, name, driverId, truck, trailer, truckImgs, trailerImgs, notes, comment] = row.data;
+    const truckUrls = toPhotoItems(truckImgs);
+    const trailerUrls = toPhotoItems(trailerImgs);
+
+    const photoSection = (label, items, key) => {
+      if (!items.length) return '';
+      lightboxSets[key] = items;
+      return `
+        <div class="photos-label">📷 ${label} (${items.length})</div>
+        <div class="photo-strip">
+          ${items.map((p, i) => `
+            <div class="photo-item">
+              <img src="${esc(p.url)}" loading="lazy" alt="${esc(p.cap)}" onclick="openLightboxSet('${key}', ${i})">
+              ${p.cap ? `<div class="photo-cap">${esc(p.cap)}</div>` : ''}
+            </div>`).join('')}
+        </div>`;
+    };
+
+    return `
+      <div class="record-card">
+        <div class="record-header">
+          <div class="record-name">👤 ${esc(name || '—')}</div>
+          <div class="record-time">${esc((ts || '—').split(',')[0])}</div>
+        </div>
+        <div class="record-fields">
+          <div class="record-field"><div class="lbl">Driver ID</div><div class="val">🪪 ${esc(driverId || '—')}</div></div>
+          <div class="record-field"><div class="lbl">Truck</div><div class="val">🚛 ${esc(truck || '—')}</div></div>
+          <div class="record-field"><div class="lbl">Trailer</div><div class="val">🚜 ${esc(trailer || '—')}</div></div>
+        </div>
+        ${(truckUrls.length || trailerUrls.length) ? `
+        <div class="record-photos">
+          ${photoSection('Truck', truckUrls, 't' + id)}
+          ${photoSection('Trailer', trailerUrls, 'r' + id)}
+        </div>` : ''}
+        ${notes ? `<div class="driver-notes"><div class="lbl">📝 Driver Notes</div>${esc(notes)}</div>` : ''}
+        <div class="comment-section">
+          <div class="comment-label">💬 Admin Comment</div>
+          <textarea class="comment-box" id="comment-${id}" maxlength="2000" placeholder="Add a comment...">${esc(comment || '')}</textarea>
+          <div>
+            <button class="comment-save-btn" id="save-${id}" onclick="saveComment(${id})">Save</button>
+            <span class="comment-saved" id="saved-${id}">✅ Saved!</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function loadRecords() {
+  const list = document.getElementById('records-list');
+  list.innerHTML = '<div class="no-records">Loading...</div>';
+  try {
+    const data = await callApi('get_reports', {}, getAdminToken());
+    setAdminRole(data.role);
+    allRows = (data.reports || []).map(r => ({
+      id: r.id, date: r.report_date,
+      data: [fmtDate(r.report_date), r.driver_name, r.driver_id, r.truck, r.trailer,
+             r.truck_photos, r.trailer_photos, r.notes, r.admin_comment],
+    }));
+    currentPage = 1;
+    document.getElementById('stat-total').textContent = allRows.length;
+    document.getElementById('stat-today').textContent = allRows.filter(r => r.date === data.today).length;
+
+    if (!allRows.length) {
+      list.innerHTML = '<div class="no-records">📭 No reports yet.</div>';
+      renderPagination(1, 1, 0, 10);
+      return;
+    }
+    filterAndRender();
+  } catch (err) {
+    if (handleAuthError(err)) return;
+    list.innerHTML = `<div class="no-records">❌ Error loading data: ${esc(err.message)}</div>`;
+  }
+}
+
+async function saveComment(id) {
+  const comment = document.getElementById('comment-' + id).value;
+  const btn = document.getElementById('save-' + id);
+  const savedEl = document.getElementById('saved-' + id);
+  btn.disabled = true;
+  try {
+    await callApi('update_comment', { id, comment }, getAdminToken());
+    const row = allRows.find(r => r.id === id);
+    if (row) row.data[8] = comment;
+    savedEl.style.display = 'inline';
+    setTimeout(() => { savedEl.style.display = 'none'; }, 2000);
+  } catch (err) {
+    if (!handleAuthError(err)) alert('Error saving comment: ' + err.message);
+  }
+  btn.disabled = false;
+}
+
+// ─── ULOGE I KARTICE ──────────────────────────────────────
+let adminRole = null;
+let adminTab = 'reports';
+
+function setAdminRole(role) {
+  adminRole = role;
+  const isSuper = role === 'super';
+  document.getElementById('tab-drivers').style.display = isSuper ? '' : 'none';
+  const badge = document.getElementById('role-badge');
+  badge.textContent = isSuper ? 'Super admin' : 'Admin';
+  badge.className = 'role-badge' + (isSuper ? ' super' : '');
+  if (!isSuper && adminTab === 'drivers') showAdminTab('reports');
+}
+
+function showAdminTab(tab) {
+  if (tab === 'drivers' && adminRole !== 'super') tab = 'reports';
+  adminTab = tab;
+  document.getElementById('section-reports').style.display = tab === 'reports' ? '' : 'none';
+  document.getElementById('section-drivers').style.display = tab === 'drivers' ? '' : 'none';
+  document.getElementById('tab-reports').classList.toggle('active', tab === 'reports');
+  document.getElementById('tab-drivers').classList.toggle('active', tab === 'drivers');
+  if (tab === 'drivers') loadDrivers();
+}
+
+function refreshAdmin() {
+  if (adminTab === 'drivers') loadDrivers(); else loadRecords();
+}
+
+// ─── VOZAČI (super admin) ─────────────────────────────────
+let allDrivers = [];
+let editingDriver = null;
+
+function driverMsg(type, text) {
+  const el = document.getElementById('drv-msg');
+  el.className = 'drv-msg ' + (type || '');
+  el.textContent = text || '';
+}
+
+async function loadDrivers() {
+  const list = document.getElementById('drv-list');
+  if (!allDrivers.length) list.innerHTML = '<div class="no-records">Loading...</div>';
+  try {
+    const data = await callApi('list_drivers', {}, getAdminToken());
+    allDrivers = data.drivers || [];
+    renderDrivers();
+  } catch (err) {
+    if (handleAuthError(err)) return;
+    list.innerHTML = `<div class="no-records">❌ ${esc(err.message)}</div>`;
+  }
+}
+
+function renderDrivers() {
+  const search = document.getElementById('drv-search').value.toLowerCase().trim();
+  const filter = document.getElementById('drv-filter').value;
+  document.getElementById('stat-drivers').textContent = allDrivers.length;
+  document.getElementById('stat-active').textContent = allDrivers.filter(d => d.active).length;
+
+  const rows = allDrivers.filter(d =>
+    (filter === 'all' || (filter === 'active') === d.active) &&
+    (!search || d.full_name.toLowerCase().includes(search) || d.driver_id.includes(search)));
+
+  const list = document.getElementById('drv-list');
+  if (!rows.length) {
+    list.innerHTML = `<div class="no-records">${allDrivers.length ? '📭 No drivers match.' : '📭 No drivers yet – add the first one above.'}</div>`;
+    return;
+  }
+  list.innerHTML = rows.map(d => editingDriver === d.id ? `
+    <div class="drv-row">
+      <div class="drv-edit">
+        <input type="text" id="edit-name-${d.id}" value="${esc(d.full_name)}" maxlength="100">
+        <input type="text" id="edit-id-${d.id}" value="${esc(d.driver_id)}" maxlength="4" inputmode="numeric"
+               onkeydown="if(event.key==='Enter')saveDriver(${d.id})">
+      </div>
+      <div class="drv-actions">
+        <button class="drv-btn save" onclick="saveDriver(${d.id})">Save</button>
+        <button class="drv-btn" onclick="editingDriver=null;renderDrivers()">Cancel</button>
+      </div>
+    </div>` : `
+    <div class="drv-row ${d.active ? '' : 'inactive'}">
+      <div class="drv-name">${esc(d.full_name)}</div>
+      <div class="drv-id">${esc(d.driver_id)}</div>
+      <span class="drv-status ${d.active ? 'on' : 'off'}">${d.active ? 'Active' : 'Inactive'}</span>
+      <div class="drv-actions">
+        <button class="drv-btn" onclick="editingDriver=${d.id};renderDrivers()">✏️ Edit</button>
+        <button class="drv-btn" onclick="toggleDriver(${d.id})">${d.active ? '⏸ Deactivate' : '▶ Activate'}</button>
+        <button class="drv-btn danger" onclick="deleteDriver(${d.id})">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+async function addDriver() {
+  const nameEl = document.getElementById('drv-new-name'), idEl = document.getElementById('drv-new-id');
+  const full_name = nameEl.value.trim(), driver_id = idEl.value.trim();
+  if (!full_name || !/^\d{4}$/.test(driver_id)) { driverMsg('err', 'Enter a full name and a 4-digit Driver ID.'); return; }
+  const btn = document.getElementById('drv-add-btn');
+  btn.disabled = true;
+  try {
+    const { driver } = await callApi('add_driver', { full_name, driver_id }, getAdminToken());
+    allDrivers.push(driver);
+    allDrivers.sort((a, b) => a.full_name.localeCompare(b.full_name));
+    nameEl.value = ''; idEl.value = '';
+    driverMsg('ok', `✅ ${driver.full_name} added.`);
+    renderDrivers();
+    nameEl.focus();
+  } catch (err) {
+    if (!handleAuthError(err)) driverMsg('err', '❌ ' + err.message);
+  }
+  btn.disabled = false;
+}
+
+async function saveDriver(id) {
+  const full_name = document.getElementById('edit-name-' + id).value.trim();
+  const driver_id = document.getElementById('edit-id-' + id).value.trim();
+  if (!full_name || !/^\d{4}$/.test(driver_id)) { driverMsg('err', 'Enter a full name and a 4-digit Driver ID.'); return; }
+  try {
+    const { driver } = await callApi('update_driver', { id, full_name, driver_id }, getAdminToken());
+    allDrivers = allDrivers.map(d => d.id === id ? driver : d);
+    editingDriver = null;
+    driverMsg('ok', `✅ ${driver.full_name} saved.`);
+    renderDrivers();
+  } catch (err) {
+    if (!handleAuthError(err)) driverMsg('err', '❌ ' + err.message);
+  }
+}
+
+async function toggleDriver(id) {
+  const d = allDrivers.find(x => x.id === id);
+  if (!d) return;
+  try {
+    const { driver } = await callApi('update_driver', { id, active: !d.active }, getAdminToken());
+    allDrivers = allDrivers.map(x => x.id === id ? driver : x);
+    driverMsg('ok', `${driver.full_name} is now ${driver.active ? 'active' : 'inactive'}.`);
+    renderDrivers();
+  } catch (err) {
+    if (!handleAuthError(err)) driverMsg('err', '❌ ' + err.message);
+  }
+}
+
+async function deleteDriver(id) {
+  const d = allDrivers.find(x => x.id === id);
+  if (!d || !confirm(`Delete ${d.full_name} (${d.driver_id})?\n\nTheir old reports stay. Tip: "Deactivate" blocks a driver without deleting.`)) return;
+  try {
+    await callApi('delete_driver', { id }, getAdminToken());
+    allDrivers = allDrivers.filter(x => x.id !== id);
+    driverMsg('ok', `${d.full_name} deleted.`);
+    renderDrivers();
+  } catch (err) {
+    if (!handleAuthError(err)) driverMsg('err', '❌ ' + err.message);
+  }
+}
+
+// ─── LIGHTBOX ─────────────────────────────────────────────
+let lightboxUrls = [];
+let lightboxIdx = 0;
+
+function openLightboxSet(key, idx) {
+  lightboxUrls = lightboxSets[key] || [];
+  lightboxIdx = idx;
+  if (!lightboxUrls.length) return;
+  updateLightbox();
+  document.getElementById('lightbox').classList.add('open');
+}
+
+function lightboxNav(dir) {
+  lightboxIdx = Math.max(0, Math.min(lightboxUrls.length - 1, lightboxIdx + dir));
+  updateLightbox();
+}
+
+function updateLightbox() {
+  const item = lightboxUrls[lightboxIdx];
+  document.getElementById('lightbox-img').src = item.url;
+  lbResetZoom();
+  const counter = lightboxUrls.length > 1 ? (lightboxIdx + 1) + ' / ' + lightboxUrls.length : '';
+  document.getElementById('lightbox-counter').textContent = [counter, item.cap].filter(Boolean).join(' · ');
+  document.getElementById('lightbox-prev').style.display = lightboxIdx === 0 ? 'none' : 'flex';
+  document.getElementById('lightbox-next').style.display = lightboxIdx === lightboxUrls.length - 1 ? 'none' : 'flex';
+}
+
+// ─── ZOOM U LIGHTBOX-u ───
+// "+" / "−" dugmad, točkić miša, dva prsta (pinch) i dupli dodir; uvećana slika se pomera prevlačenjem.
+const LB_ZOOM_STEPS = [1, 1.5, 2, 3, 4];
+let lbZ = 1, lbX = 0, lbY = 0;
+
+function lbApply() {
+  const img = document.getElementById('lightbox-img');
+  // ne dozvoli da slika ode van ekrana
+  const maxX = img.clientWidth * (lbZ - 1) / 2, maxY = img.clientHeight * (lbZ - 1) / 2;
+  lbX = Math.max(-maxX, Math.min(maxX, lbX));
+  lbY = Math.max(-maxY, Math.min(maxY, lbY));
+  img.style.transform = `translate(${lbX}px, ${lbY}px) scale(${lbZ})`;
+  img.classList.toggle('zoomed', lbZ > 1);
+  document.getElementById('lb-zoom-level').textContent = (Math.round(lbZ * 10) / 10) + '×';
+  document.getElementById('lb-zoom-out').disabled = lbZ <= 1;
+  document.getElementById('lb-zoom-in').disabled = lbZ >= LB_ZOOM_STEPS[LB_ZOOM_STEPS.length - 1];
+}
+
+function lbSetZoom(z) {
+  const max = LB_ZOOM_STEPS[LB_ZOOM_STEPS.length - 1];
+  const old = lbZ;
+  lbZ = Math.max(1, Math.min(max, z));
+  lbX *= lbZ / old; lbY *= lbZ / old;   // zadrži isti deo slike u sredini
+  if (lbZ === 1) { lbX = 0; lbY = 0; }
+  lbApply();
+}
+
+function lbZoomBy(dir) {
+  const next = dir > 0 ? LB_ZOOM_STEPS.find(s => s > lbZ + 0.01) : [...LB_ZOOM_STEPS].reverse().find(s => s < lbZ - 0.01);
+  lbSetZoom(next ?? lbZ);
+}
+
+function lbResetZoom() { lbZ = 1; lbX = 0; lbY = 0; lbApply(); }
+
+(function initLightboxZoom() {
+  const img = document.getElementById('lightbox-img');
+  const pts = new Map();
+  let start = null;
+
+  img.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    img.setPointerCapture(e.pointerId);
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const [a, b] = [...pts.values()];
+    start = { x: lbX, y: lbY, z: lbZ, px: e.clientX, py: e.clientY, dist: b ? Math.hypot(a.x - b.x, a.y - b.y) : 0 };
+    img.classList.add('dragging');
+  });
+  img.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId) || !start) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const [a, b] = [...pts.values()];
+    if (b && start.dist) {                      // dva prsta – zum
+      lbZ = Math.max(1, Math.min(4, start.z * Math.hypot(a.x - b.x, a.y - b.y) / start.dist));
+      if (lbZ === 1) { lbX = 0; lbY = 0; }
+    } else if (lbZ > 1) {                       // jedan prst / miš – pomeranje
+      lbX = start.x + (e.clientX - start.px);
+      lbY = start.y + (e.clientY - start.py);
+    }
+    lbApply();
+  });
+  const end = e => {
+    pts.delete(e.pointerId);
+    if (!pts.size) { start = null; img.classList.remove('dragging'); }
+    else { const [a] = [...pts.values()]; start = { x: lbX, y: lbY, z: lbZ, px: a.x, py: a.y, dist: 0 }; }
+  };
+  img.addEventListener('pointerup', end);
+  img.addEventListener('pointercancel', end);
+
+  // dupli dodir / dupli klik: 2× ili nazad na 1×
+  img.addEventListener('dblclick', () => lbSetZoom(lbZ > 1 ? 1 : 2));
+
+  // točkić miša
+  document.getElementById('lightbox').addEventListener('wheel', e => {
+    e.preventDefault();
+    lbSetZoom(lbZ * (e.deltaY < 0 ? 1.15 : 1 / 1.15));
+  }, { passive: false });
+})();
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+
+document.getElementById('lightbox').addEventListener('click', function (e) {
+  if (e.target === this) closeLightbox();
+});
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox').classList.contains('open')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') lightboxNav(-1);
+  if (e.key === 'ArrowRight') lightboxNav(1);
+  if (e.key === '+' || e.key === '=') lbZoomBy(1);
+  if (e.key === '-') lbZoomBy(-1);
+});
+
+// ─── PAGES ────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+}
+
+function showStatus(ctx, type, msg) {
+  const el = document.getElementById(ctx === 'form' ? 'status-msg' : 'login-msg');
+  el.className = 'status-msg ' + type;
+  el.innerHTML = msg;
+}
+
+window.addEventListener('load', () => {
+  renderPhotos('truck'); renderPhotos('trailer');
+  if (window.location.hash === '#admin') {
+    if (getAdminToken()) { showPage('admin'); loadRecords(); }
+    else showPage('login');
+  } else {
+    showPage('form');
+  }
+});
+</script>
+</body>
+</html>
